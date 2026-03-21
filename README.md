@@ -4,5 +4,5 @@
 
 * Corbin Barney (u1066089)
 * Charbel Salloum (u1446840)
-
+* Derek Tinoco (u1382366)
 ### Antenna Team
