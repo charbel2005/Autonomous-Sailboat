@@ -38,7 +38,6 @@
 
 COM_InitTypeDef BspCOMInit;
 
-TaskHandle_t task_default;
 TaskHandle_t task_button;
 
 SemaphoreHandle_t semphr_button;
@@ -187,13 +186,11 @@ void hardware_init(void)
 
   GPIO_InitTypeDef GPIO_InitStruct = {0};
 
-  GPIO_InitStruct.Pin = GPIO_PIN_0 | GPIO_PIN_14;
+  GPIO_InitStruct.Pin = GPIO_PIN_14;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
-  GPIO_InitStruct.Pin = GPIO_PIN_1;
-  HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
 
   GPIO_InitStruct.Pin = GPIO_PIN_13;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
@@ -254,23 +251,10 @@ void rtos_init()
   // ...
 
   /* RTOS_THREADS */
-  if (xTaskCreate(task_defaultHandler, "DefaultTask", 128, NULL, osPriorityNormal, &task_default) != pdPASS) { Error_Handler(); }
   if (xTaskCreate(task_buttonHandler, "ButtonTask", 128, NULL, osPriorityAboveNormal, &task_button)    != pdPASS) { Error_Handler(); }
 
   /* RTOS_EVENTS */
   // ...
-}
-
-/**
-  * Toggle the green LED every second.
-  */
-void task_defaultHandler(void *argument)
-{
-  for(;;)
-  {
-    vTaskDelay(500 * portTICK_PERIOD_MS);
-    HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_0);
-  }
 }
 
 void task_buttonHandler(void *argument)

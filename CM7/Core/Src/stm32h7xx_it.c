@@ -193,7 +193,6 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
   if (GPIO_Pin == GPIO_PIN_13)
   {
     BaseType_t xHigherPriorityTaskWoken = pdFALSE;
-    HAL_GPIO_TogglePin(GPIOE, GPIO_PIN_1);
     xSemaphoreGiveFromISR(semphr_button, &xHigherPriorityTaskWoken);
     portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
   }

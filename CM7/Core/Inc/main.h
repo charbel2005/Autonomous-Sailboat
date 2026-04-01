@@ -47,9 +47,6 @@ extern "C" {
 
 /* Exported constants --------------------------------------------------------*/
 
-extern TaskHandle_t task_default;
-extern TaskHandle_t task_button;
-
 extern SemaphoreHandle_t semphr_button;
 
 /* Exported macro ------------------------------------------------------------*/
