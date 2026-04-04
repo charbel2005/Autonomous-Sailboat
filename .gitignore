@@ -6,3 +6,4 @@ CM4/build/
 CM7/build/
 build/
 .cache/
+.vscode/c_cpp_properties.json
