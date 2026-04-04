@@ -331,7 +331,7 @@ void  initServo(void)
 
 void init_USART3(void) {
   // Setting up PB10 (USART3_TX)
-  GPIO_initTypeDef GPIO_InitStruct = {0};
+  GPIO_InitTypeDef GPIO_InitStruct = {0};
   GPIO_InitStruct.Pin = GPIO_PIN_10;
   GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
   GPIO_InitStruct.Pull =  GPIO_PULLUP;
@@ -344,15 +344,16 @@ void init_USART3(void) {
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
   //Setting USART setting
-  USART_InitTypeDef USART_InitStruct = {0};
-  USART_InitStruct.baudrate = 96000;
-  USART_InitStruct.WordLength = USART_WORDLENGTH_8B;
-  USART_InitStruct.StopBits = USART_STOPBITS_1;
-  USART_InitStruct.Parity = USART_PARITY_NONE;
-  USART_InitStruct.Mode = USART_MODE_TX_RX;
+  UART_InitTypeDef UART_InitStruct = {0};
+  UART_InitStruct.BaudRate = 96000;
+  UART_InitStruct.WordLength = UART_WORDLENGTH_8B;
+  UART_InitStruct.StopBits = UART_STOPBITS_1;
+  UART_InitStruct.Parity = UART_PARITY_NONE;
+  UART_InitStruct.Mode = UART_MODE_TX_RX;
 
-  __USART_HandleTypeDef USART3_Handler = {0};
-  USART3_Handler.Init = USART_InitStruct;
+  UART_HandleTypeDef UART3_Handler = {0};
+  UART3_Handler.Init = UART_InitStruct;
+  UART3_Handler.Instance = USART3_BASE;
 
-  HAL_USART_Init(&USART3_Handler);
+  HAL_USART_Init(&UART3_Handler);
 }
