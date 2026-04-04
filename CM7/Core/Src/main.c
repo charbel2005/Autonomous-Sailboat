@@ -183,6 +183,7 @@ void hardware_init(void)
   __HAL_RCC_GPIOB_CLK_ENABLE();
   __HAL_RCC_GPIOC_CLK_ENABLE();
   __HAL_RCC_GPIOE_CLK_ENABLE();
+  __HAL_RCC_USART3_CLK_ENABLE();
 
   /* USER CODE BEGIN Init */
 
@@ -316,7 +317,7 @@ void center(void)
 __HAL_TIM_SET_COMPARE(&servo_tim1,TIM_CHANNEL_1,1500);
 }
 
-void initServo(void)
+void  initServo(void)
 {
   GPIO_InitTypeDef GPIO_InitStruct = {0};
   //__HAL_RCC_GPIOE_CLK_ENABLE(); //Already initialized in hardware init
@@ -326,4 +327,32 @@ void initServo(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   GPIO_InitStruct.Alternate = GPIO_AF1_TIM1;
   HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
+}
+
+void init_USART3(void) {
+  // Setting up PB10 (USART3_TX)
+  GPIO_initTypeDef GPIO_InitStruct = {0};
+  GPIO_InitStruct.Pin = GPIO_PIN_10;
+  GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+  GPIO_InitStruct.Pull =  GPIO_PULLUP;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  GPIO_InitStruct.Alternate = GPIO_AF7_USART3; // have to change bit mask if not right
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+  //Changing to PB11 (USART3_RX)
+  GPIO_InitStruct.Pin = GPIO_PIN_11; 
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+  //Setting USART setting
+  USART_InitTypeDef USART_InitStruct = {0};
+  USART_InitStruct.baudrate = 96000;
+  USART_InitStruct.WordLength = USART_WORDLENGTH_8B;
+  USART_InitStruct.StopBits = USART_STOPBITS_1;
+  USART_InitStruct.Parity = USART_PARITY_NONE;
+  USART_InitStruct.Mode = USART_MODE_TX_RX;
+
+  __USART_HandleTypeDef USART3_Handler = {0};
+  USART3_Handler.Init = USART_InitStruct;
+
+  HAL_USART_Init(&USART3_Handler);
 }
