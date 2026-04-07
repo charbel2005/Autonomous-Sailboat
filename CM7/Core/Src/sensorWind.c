@@ -54,6 +54,7 @@ void sensorWind_uart4Init(void) {
   UART4_Handler.Instance = UART4;
 
   HAL_UART_Init(&UART4_Handler);
+  printf("<----------------------------New Flash----UART INIT COMPLETE------------>");
 }
 
 /**
@@ -69,16 +70,17 @@ void sensorWind_rtosInit()
   */
 void sensorWind_handler(void *argument)
 {
-  uint8_t txBuffer[8] = {0x02, 0x03, 0x00, 0x00, 0x00, 0x01, 0x84, 0x39}; // protocol for asking windvane for wind direction in degrees
+  uint8_t txBuffer[8] = {0x00, 0x03, 0x00, 0x00, 0x00, 0x01, 0x84, 0x39}; // protocol for asking windvane for wind direction in degrees
   uint8_t angleBuffer[7];
   uint16_t rawAngle;
+  HAL_StatusTypeDef error;
   for(;;)
   {
     if (HAL_UART_Transmit(&UART4_Handler, txBuffer, 8, 1000) != HAL_OK) {
-      printf("HAL transmit failed");
+      printf("HAL transmit failed\r\n");
     } 
-    if (HAL_UART_Receive(&UART4_Handler, angleBuffer, 7, 1000) != HAL_OK) {
-      printf("HAL receivefailed");
+    if (error = HAL_UART_Receive(&UART4_Handler, angleBuffer, 7, 1000) != HAL_OK) {
+      printf("HAL receivefailed: %d\r\n", error);
     }
     rawAngle = (uint16_t)(((angleBuffer[3] << 8) | angleBuffer[4]) / 10); 
     servoSail_setAngle(rawAngle);
