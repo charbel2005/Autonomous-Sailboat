@@ -49,7 +49,7 @@ extern "C" {
 
 /* Exported macro ------------------------------------------------------------*/
 /* USER CODE BEGIN EM */
-
+#define STM32H755_CLOCK_RATE 64000000
 /* USER CODE END EM */
 
 /* Exported functions prototypes ---------------------------------------------*/
