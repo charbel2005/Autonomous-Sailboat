@@ -224,32 +224,69 @@
 
  /* ─── Register addresses ─────────────────────────────────────────── */
 #define REG_FIFO                 0x00
+#define REG_OP_MODE              0x01
+#define REG_FRF_MSB              0x06
+#define REG_FRF_MID              0x07
+#define REG_FRF_LSB              0x08
+#define REG_PA_CONFIG            0x09
+#define REG_FIFO_ADDR_PTR        0x0D
+#define REG_FIFO_TX_BASE_ADDR    0x0E
+#define REG_FIFO_RX_BASE_ADDR    0x0F
+#define REG_IRQ_FLAGS            0x10
+#define REG_TX_CFG               0x16
+#define REG_PAYLOAD_LENGTH       0x17
+#define REG_NB_RX_BYTES          0x1D
+#define REG_RX_HEADER_INFO       0x1E
+#define REG_RX_DATA_ADDR         0x26
+#define REG_VERSION              0x42
 
+/* Helper functions */
+
+#define CS_LOW()   HAL_GPIO_WritePin(GPIOD, GPIO_PIN_14, GPIO_PIN_RESET)
+#define CS_HIGH()  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_14, GPIO_PIN_SET)
+#define RESET_LOW()  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_0, GPIO_PIN_RESET)  // adjust pin
+#define RESET_HIGH() HAL_GPIO_WritePin(GPIOA, GPIO_PIN_0, GPIO_PIN_SET)    // adjust pin
 
 
 /*
-    Send a single byte to a register over SPI.
+   Write a single byte to the given register address
 */
-
-static void LoRa_WriteFIFO(uint8_t addr, uint8_t *data, uint8_t len)
+static void SPI_tx_byte(uint8_t addr, uint8_t val)
 {
-    uint8_t addr = addr | 0x80;    /* FIFO register with write bit set */
+    uint8_t buf[2];
+    buf[0] = addr | 0x80;   /* set bit 7 to indicate write */
+    buf[1] = val;
+
+    CS_LOW();
+    HAL_SPI_Transmit(&hspi1, buf, 2, HAL_MAX_DELAY);
+    CS_HIGH();
+}
+
+/*
+   Read a single byte from the given register address
+*/
+static uint8_t SPI_rx_byte(uint8_t addr)
+{
+    uint8_t tx[2], rx[2];
+    tx[0] = addr & 0x7F;    /* clear bit 7 to indicate read */
+    tx[1] = 0x00;           /* dummy byte to clock out the response */
+
+    CS_LOW();
+    HAL_SPI_TransmitReceive(&hspi1, tx, rx, 2, HAL_MAX_DELAY);
+    CS_HIGH();
+
+    return rx[1];           /* first byte is garbage, second is the data */
+}
+
+/*
+   Write multiple bytes to the RFM95W FIFO starting at the given address
+*/
+static void SPI_FIFO_tx(uint8_t *data, uint8_t len)
+{
+    uint8_t addr = REG_FIFO | 0x80;    /* FIFO register with write bit set */
+
     CS_LOW();
     HAL_SPI_Transmit(&hspi1, &addr, 1, HAL_MAX_DELAY);  /* send address */
     HAL_SPI_Transmit(&hspi1, data, len, HAL_MAX_DELAY); /* send all bytes */
     CS_HIGH();
 }
-
-
-// /*
-//     Read a single byte from a register over SPI.
-// */
-
-// static void SPI_rx(uint8_t addr, uint8_t *data, uint8_t len)
-// {
-//     uint8_t addr = addr | 0x00;    /* FIFO register with write bit set */
-//     CS_LOW();
-//     HAL_SPI_Transmit(&hspi1, &addr, 1, HAL_MAX_DELAY);  /* send address */
-//     HAL_SPI_Transmit(&hspi1, data, len, HAL_MAX_DELAY); /* send all bytes */
-//     CS_HIGH();
-// }
