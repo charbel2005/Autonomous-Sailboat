@@ -1,12 +1,24 @@
 __pycache__
 venv/
 docs/Literature_Review_Presentation.pptx
+
+
+CM4/build/
+CM7/build/
+build/
+.cache/
+
 CLAUDE.md
 
 # macOS
 .DS_Store
 
 # VS / VS Code
+CMakeCache.txt
+CMakeFiles/
+Makefile
+cmake_install.cmake
+compile_commands.json
 .vs/
 .vscode/
 .settings/ide.store.json
