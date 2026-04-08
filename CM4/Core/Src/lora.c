@@ -224,17 +224,32 @@
 
  /* ─── Register addresses ─────────────────────────────────────────── */
 #define REG_FIFO                 0x00
-#define REG_OP_MODE              0x01
-#define REG_FRF_MSB              0x06
-#define REG_FRF_MID              0x07
-#define REG_FRF_LSB              0x08
-#define REG_PA_CONFIG            0x09
-#define REG_FIFO_ADDR_PTR        0x0D
-#define REG_FIFO_TX_BASE_ADDR    0x0E
-#define REG_FIFO_RX_BASE_ADDR    0x0F
-#define REG_IRQ_FLAGS            0x12
-#define REG_PAYLOAD_LENGTH       0x22
-#define REG_MODEM_CONFIG_1       0x1D
-#define REG_MODEM_CONFIG_2       0x1E
-#define REG_MODEM_CONFIG_3       0x26
-#define REG_VERSION              0x42
+
+
+
+/*
+    Send a single byte to a register over SPI.
+*/
+
+static void LoRa_WriteFIFO(uint8_t addr, uint8_t *data, uint8_t len)
+{
+    uint8_t addr = addr | 0x80;    /* FIFO register with write bit set */
+    CS_LOW();
+    HAL_SPI_Transmit(&hspi1, &addr, 1, HAL_MAX_DELAY);  /* send address */
+    HAL_SPI_Transmit(&hspi1, data, len, HAL_MAX_DELAY); /* send all bytes */
+    CS_HIGH();
+}
+
+
+// /*
+//     Read a single byte from a register over SPI.
+// */
+
+// static void SPI_rx(uint8_t addr, uint8_t *data, uint8_t len)
+// {
+//     uint8_t addr = addr | 0x00;    /* FIFO register with write bit set */
+//     CS_LOW();
+//     HAL_SPI_Transmit(&hspi1, &addr, 1, HAL_MAX_DELAY);  /* send address */
+//     HAL_SPI_Transmit(&hspi1, data, len, HAL_MAX_DELAY); /* send all bytes */
+//     CS_HIGH();
+// }
