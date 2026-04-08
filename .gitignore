@@ -9,3 +9,4 @@ CLAUDE.md
 # VS / VS Code
 .vs/
 .vscode/
+.settings/ide.store.json
