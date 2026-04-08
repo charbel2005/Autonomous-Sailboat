@@ -130,7 +130,7 @@ int main(void)
 
 
 
-  if (LoRa_Init() != 0)
+  if (LoRa_init() != 0)
   {
       Error_Handler();    /* SPI wiring wrong or chip not found */
   }

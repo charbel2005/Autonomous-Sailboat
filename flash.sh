@@ -23,7 +23,7 @@ then
     printf "\n===========================================================================\n"
     printf "Flashing CM4...\n"
     openocd -f interface/stlink.cfg \
-            -f target/stm32h7x.cfg \
+            -f target/stm32h7x_dual_bank.cfg \
             -c "program CM4/build/Autonomaus_Sailboat_CM4.elf verify reset exit"
 fi
 

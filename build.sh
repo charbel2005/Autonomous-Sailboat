@@ -23,7 +23,7 @@ done
 if [[ $startup -eq 1 ]]; then
     printf "\n===========================================================================\n"
     printf "Installing dependencies...\n"
-    sudo apt-get install -y gcc-arm-none-eabi ninja-build cmake openocd
+    echo "Skipping apt-get on Mac"
 
     printf "\n===========================================================================\n"
     printf "Configuring CM7...\n"
