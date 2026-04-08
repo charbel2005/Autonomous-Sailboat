@@ -18,6 +18,7 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "lora.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -26,6 +27,17 @@
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
+
+typedef struct __attribute__((packed)) {
+    float    lat;
+    float    lon;
+    int16_t  heading;
+    int16_t  roll;
+    int16_t  pitch;
+    uint8_t  battery;
+    int16_t  wind_speed;
+    int16_t  wind_dir;
+} TelemetryPacket_t;
 
 /* USER CODE END PTD */
 
@@ -64,6 +76,10 @@ static void MX_SPI1_Init(void);
 
 /* Private user code --------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+
+
+// initialize gpio pins for di0-3 interrupt and rst 
+// initialize led's for debugging
 
 /* USER CODE END 0 */
 
@@ -111,6 +127,29 @@ int main(void)
   /* Initialize all configured peripherals */
   /* USER CODE BEGIN 2 */
   MX_SPI1_Init();
+
+
+
+  if (LoRa_Init() != 0)
+  {
+      Error_Handler();    /* SPI wiring wrong or chip not found */
+  }
+
+  TelemetryPacket_t pkt = {
+      .lat        = 40.7128f,
+      .lon        = -74.0060f,
+      .heading    = 180,
+      .battery    = 95,
+  };
+
+  while (1)
+  {
+      LoRa_Send((uint8_t *)&pkt, sizeof(pkt));
+      HAL_Delay(1000);
+  }
+
+
+
   /* USER CODE END 2 */
 
   /* Infinite loop */

@@ -232,15 +232,22 @@
 #define REG_FIFO_ADDR_PTR        0x0D
 #define REG_FIFO_TX_BASE_ADDR    0x0E
 #define REG_FIFO_RX_BASE_ADDR    0x0F
-#define REG_IRQ_FLAGS            0x10
+#define REG_IRQ_FLAGS            0x12
 #define REG_TX_CFG               0x16
 #define REG_PAYLOAD_LENGTH       0x17
+
+#define REG_MODEM_CFG_1          0x1D
+
+#define REG_MODEM_CFG_2          0x1E
+#define REG_MODEM_CFG_3          0x26
+
+
 #define REG_NB_RX_BYTES          0x1D
 #define REG_RX_HEADER_INFO       0x1E
 #define REG_RX_DATA_ADDR         0x26
 #define REG_IRQ_FLAGS            0x10
 #define REG_TX_CFG               0x16
-#define REG_PAYLOAD_LENGTH       0x17
+#define REG_PAYLOAD_LENGTH       0x22
 #define REG_NB_RX_BYTES          0x1D
 #define REG_RX_HEADER_INFO       0x1E
 #define REG_RX_DATA_ADDR         0x26
@@ -250,8 +257,8 @@
 
 #define CS_LOW()   HAL_GPIO_WritePin(GPIOD, GPIO_PIN_14, GPIO_PIN_RESET)
 #define CS_HIGH()  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_14, GPIO_PIN_SET)
-#define RESET_LOW()  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_0, GPIO_PIN_RESET)  // adjust pin
-#define RESET_HIGH() HAL_GPIO_WritePin(GPIOA, GPIO_PIN_0, GPIO_PIN_SET)    // adjust pin
+#define RESET_LOW()  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_0, GPIO_PIN_RESET)  // TODO: adjust pin
+#define RESET_HIGH() HAL_GPIO_WritePin(GPIOA, GPIO_PIN_0, GPIO_PIN_SET)    // TODO: adjust pin
 
 
 /*
@@ -295,4 +302,86 @@ static void SPI_FIFO_tx(uint8_t *data, uint8_t len)
     HAL_SPI_Transmit(&hspi1, &addr, 1, HAL_MAX_DELAY);  /* send address */
     HAL_SPI_Transmit(&hspi1, data, len, HAL_MAX_DELAY); /* send all bytes */
     CS_HIGH();
+}
+
+
+int LoRa_init(void){
+    // hardware reset
+    RESET_LOW();
+    HAL_Delay(1);
+    RESET_HIGH();
+    HAL_Delay(10);
+
+    // verify chip
+    uint8_t version = SPI_rx_byte(REG_VERSION);
+    if(version != 0x11){
+        // set red LED high
+        return -1;
+    }
+
+    // set sleep mode (can only edit things in sleep mode)
+    SPI_tx_byte(REG_OP_MODE, 0x00);
+    HAL_Delay(1);
+
+    // set into lora mode (bit 7)
+    SPI_tx_byte(REG_OP_MODE, 0x80);
+    HAL_Delay(1);
+
+    // set carrier frequency. goal freq 915 Mhz. corresponds to frf high mid low of 0xe4c000
+    SPI_tx_byte(REG_FRF_MSB, 0xE4);
+    SPI_tx_byte(REG_FRF_MID, 0xC0);
+    SPI_tx_byte(REG_FRF_LSB, 0x00);
+    HAL_Delay(1);
+
+    // writing reg pa config
+    SPI_tx_byte(REG_PA_CONFIG, 0xff);
+    HAL_Delay(1);
+
+    // writing important transmit configuraations
+    // REGMODEM CONFIG 1 IS 0X1D
+    SPI_tx_byte(REG_MODEM_CFG_1, 0x72);
+    HAL_Delay(1);
+
+    SPI_tx_byte(REG_MODEM_CFG_2, 0x80); // crc payload off, sf 8
+    HAL_Delay(1);
+
+    SPI_tx_byte(REG_MODEM_CFG_3, 0x04);
+    HAL_Delay(1);
+
+    // setting base address
+    SPI_tx_byte(REG_FIFO_RX_BASE_ADDR, 0x00);
+    SPI_tx_byte(REG_FIFO_TX_BASE_ADDR, 0x00);
+    HAL_Delay(1);
+
+    // enter standby
+    SPI_tx_byte(REG_OP_MODE, 0x81);
+    HAL_Delay(1);
+
+    return 0;
+}
+
+void LoRa_Send(uint8_t *data, uint8_t len){
+    SPI_tx_byte(REG_OP_MODE, 0x81);
+    HAL_Delay(1);
+
+    SPI_tx_byte(REG_FIFO_ADDR_PTR, 0x00);
+    HAL_Delay(1);
+
+    SPI_FIFO_tx(data, len);
+    SPI_tx_byte(REG_PAYLOAD_LENGTH, len);
+    SPI_tx_byte(REG_IRQ_FLAGS, 0xff);
+
+    SPI_tx_byte(REG_OP_MODE, 0x83);
+
+    uint32_t start = HAL_GetTick();
+    while(!(SPI_rx_byte(REG_IRQ_FLAGS) & 0x08)){
+        if (HAL_GetTick() - start > 2000)
+        {
+            break;
+        }
+    }
+
+    // clear irq flags and return to standby
+    SPI_tx_byte(REG_IRQ_FLAGS, 0xff);
+    SPI_tx_byte(REG_OP_MODE, 0x81);
 }
