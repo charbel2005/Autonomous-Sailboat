@@ -385,18 +385,22 @@ void LoRa_Send(uint8_t *data, uint8_t len){
 
     SPI_FIFO_tx(data, len);
     SPI_tx_byte(REG_PAYLOAD_LENGTH, len);
+    printf("[TX] payload_len reg readback: %d\r\n", SPI_rx_byte(REG_PAYLOAD_LENGTH));
     SPI_tx_byte(REG_IRQ_FLAGS, 0xff);
 
     SPI_tx_byte(REG_OP_MODE, 0x83);
+    printf("[TX] TX mode triggered, waiting for TxDone...\r\n");
 
     uint32_t start = HAL_GetTick();
     while(!(SPI_rx_byte(REG_IRQ_FLAGS) & 0x08)){
         if (HAL_GetTick() - start > 2000)
         {
+            printf("[TX] timeout! IRQ flags: 0x%02X\r\n", SPI_rx_byte(REG_IRQ_FLAGS));
             break;
         }
     }
 
+    printf("[TX] done. IRQ flags: 0x%02X\r\n", SPI_rx_byte(REG_IRQ_FLAGS));
     // clear irq flags and return to standby
     SPI_tx_byte(REG_IRQ_FLAGS, 0xff);
     SPI_tx_byte(REG_OP_MODE, 0x81);

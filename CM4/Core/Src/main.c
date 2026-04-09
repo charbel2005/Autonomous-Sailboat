@@ -169,6 +169,8 @@ int main(void)
       .battery    = 95,
   };
 
+  char message[] = "Hello from harrisons laptop!";
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -177,9 +179,11 @@ int main(void)
   {
     /* USER CODE END WHILE */
 
-    // LoRa_Send((uint8_t *)&pkt, sizeof(pkt));
-    Debug_LED_Toggle('y');  // toggle yellow LED to indicate packet sent
-    HAL_Delay(1000);        // wait 1 second before sending next packet
+    printf("Sending packet...\r\n");
+    LoRa_Send((uint8_t *)&message, sizeof(message));
+    printf("Packet sent.\r\n");
+    Debug_LED_Toggle('y');
+    HAL_Delay(1000);
     
     /* USER CODE BEGIN 3 */
   }
