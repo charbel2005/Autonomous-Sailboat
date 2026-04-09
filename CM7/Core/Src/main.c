@@ -52,36 +52,41 @@ void task_buttonHandler(void *argument);
 
 /* Private user code ---------------------------------------------------------*/
 
-/**
-  * @brief  The application entry point.
-  * @retval int
-  */
-int main(void)
-{
-  // Dual Boot Sequence --------------------------------------------------------
-  // This sequence is based on the hardware semaphore IP, and ensures that both 
-  // cores are correctly booted and can run independently.
-  //
-  // It works as follows:
-  // 1) When the CM7 boots, it will wait until the CM4 boots and enters in stop mode (RCC_FLAG_D2CKRDY flag is reset)
-  // 2) When the CM4 is in stop mode, the CM7 will release the CM4 by means of a hardware semaphore notification (HSEM_ID_0)
-  // 3) When the CM4 receives the notification, it will exit stop mode and the RCC_FLAG_D2CKRDY flag will be set, which the CM7 is waiting for in step 1)
-  // 4) When the CM7 detects that the CM4 is out of stop mode, it will continue 
-  // 5) Perform the hardware initialization 
-  // 6) Start the RTOS scheduler.
+// /**
+//   * @brief  The application entry point.
+//   * @retval int
+//   */
+// int main(void)
+// {
+//   // Dual Boot Sequence --------------------------------------------------------
+//   // This sequence is based on the hardware semaphore IP, and ensures that both 
+//   // cores are correctly booted and can run independently.
+//   //
+//   // It works as follows:
+//   // 1) When the CM7 boots, it will wait until the CM4 boots and enters in stop mode (RCC_FLAG_D2CKRDY flag is reset)
+//   // 2) When the CM4 is in stop mode, the CM7 will release the CM4 by means of a hardware semaphore notification (HSEM_ID_0)
+//   // 3) When the CM4 receives the notification, it will exit stop mode and the RCC_FLAG_D2CKRDY flag will be set, which the CM7 is waiting for in step 1)
+//   // 4) When the CM7 detects that the CM4 is out of stop mode, it will continue 
+//   // 5) Perform the hardware initialization 
+//   // 6) Start the RTOS scheduler.
 
-  #if defined(DUAL_CORE_BOOT_SYNC_SEQUENCE)
-    uint16_t timeout = 0xFFFF;
-    while((__HAL_RCC_GET_FLAG(RCC_FLAG_D2CKRDY) != RESET) && (timeout-- > 0));
-    if ( timeout < 0 ) { Error_Handler(); }
-  #endif
+//   #if defined(DUAL_CORE_BOOT_SYNC_SEQUENCE)
+//     uint16_t timeout = 0xFFFF;
+//     while((__HAL_RCC_GET_FLAG(RCC_FLAG_D2CKRDY) != RESET) && (timeout-- > 0));
+//     if ( timeout < 0 ) { Error_Handler(); }
+//   #endif
 
-  hardware_init();
+//   hardware_init();
 
-  rtos_init();
+//   rtos_init();
 
-  vTaskStartScheduler();
-}
+//   vTaskStartScheduler();
+// }
+
+int main(void) {                                                                                    
+    HAL_Init();                                                                                       
+    while (1) {}                                                                                    
+}  
 
 /**
   * @brief System Clock Configuration
