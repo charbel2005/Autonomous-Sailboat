@@ -19,6 +19,12 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "lora.h"
+#include <stdint.h>
+
+#include "stm32h7xx_hal_conf.h"
+#include "stm32h7xx_hal_gpio.h"
+#include "stm32h7xx_hal_rcc.h"
+#include "stm32h7xx_hal_spi.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -72,6 +78,7 @@ SPI_HandleTypeDef hspi1;
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN PFP */
 static void MX_SPI1_Init(void);
+static void SystemClock_Config(void);
 /* USER CODE END PFP */
 
 /* Private user code --------------------------------------------------------*/
@@ -115,6 +122,7 @@ int main(void)
 
   /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
   HAL_Init();
+  SystemClock_Config();
 
   /* USER CODE BEGIN Init */
 
@@ -126,15 +134,22 @@ int main(void)
 
   /* Initialize all configured peripherals */
   /* USER CODE BEGIN 2 */
-  // MX_SPI1_Init();
+  MX_SPI1_Init();
 
   Debug_LED_Init();
 
 
-  // if (LoRa_init() != 0)
-  // {
-  //     Error_Handler();    /* SPI wiring wrong or chip not found */
-  // }
+  // Debug_LED_Toggle('y');  // toggle yellow LED to indicate SPI initialized
+
+  if (LoRa_init() != 0)
+  {   
+      Debug_LED_Toggle('r'); // lora init failed, set red LED high  
+      Error_Handler();    /* SPI wiring wrong or chip not found */
+  }
+  else
+  {
+      Debug_LED_Toggle('o');  // lora init successful 
+  }
 
   TelemetryPacket_t pkt = {
       .lat        = 40.7128f,
@@ -152,10 +167,8 @@ int main(void)
     /* USER CODE END WHILE */
 
     // LoRa_Send((uint8_t *)&pkt, sizeof(pkt));
-    
-    Debug_LED_Toggle('r');
-    HAL_Delay(1000);
-    Debug_LED_Toggle('g');
+    Debug_LED_Toggle('y');  // toggle yellow LED to indicate packet sent
+    HAL_Delay(1000);        // wait 1 second before sending next packet
     
     /* USER CODE BEGIN 3 */
   }
@@ -185,6 +198,41 @@ static void MX_SPI1_Init(void)
     {
         Error_Handler();
     }
+}
+
+static void SystemClock_Config(void)
+{
+  RCC_OscInitTypeDef RCC_OscInitStruct = {0};
+  RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
+
+  HAL_PWREx_ConfigSupply(PWR_DIRECT_SMPS_SUPPLY);
+  __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE3);
+  while (!__HAL_PWR_GET_FLAG(PWR_FLAG_VOSRDY)) {}
+
+  RCC_OscInitStruct.OscillatorType      = RCC_OSCILLATORTYPE_HSI;
+  RCC_OscInitStruct.HSIState            = RCC_HSI_DIV1;
+  RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
+  RCC_OscInitStruct.PLL.PLLState        = RCC_PLL_NONE;
+  if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK) { Error_Handler(); }
+
+  RCC_ClkInitStruct.ClockType      = RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_SYSCLK
+                                   | RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2
+                                   | RCC_CLOCKTYPE_D3PCLK1 | RCC_CLOCKTYPE_D1PCLK1;
+  RCC_ClkInitStruct.SYSCLKSource   = RCC_SYSCLKSOURCE_HSI;
+  RCC_ClkInitStruct.SYSCLKDivider  = RCC_SYSCLK_DIV1;
+  RCC_ClkInitStruct.AHBCLKDivider  = RCC_HCLK_DIV1;
+  RCC_ClkInitStruct.APB3CLKDivider = RCC_APB3_DIV1;
+  RCC_ClkInitStruct.APB1CLKDivider = RCC_APB1_DIV1;
+  RCC_ClkInitStruct.APB2CLKDivider = RCC_APB2_DIV1;
+  RCC_ClkInitStruct.APB4CLKDivider = RCC_APB4_DIV1;
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_1) != HAL_OK) { Error_Handler(); }
+
+  /* SPI1/2/3 kernel clock defaults to PLL1Q after reset, but PLL1 is off.
+     Switch to HSI so SPI1 can actually generate clock pulses. */
+  RCC_PeriphCLKInitTypeDef PeriphClkInitStruct = {0};
+  PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_SPI123;
+  PeriphClkInitStruct.Spi123ClockSelection = RCC_SPI123CLKSOURCE_CLKP; /* CLKP defaults to HSI after reset */
+  if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct) != HAL_OK) { Error_Handler(); }
 }
 
 /* USER CODE END 4 */

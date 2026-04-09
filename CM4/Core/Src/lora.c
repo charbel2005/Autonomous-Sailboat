@@ -1,3 +1,5 @@
+
+
 /*
  * lora.c - LoRa Telemetry Driver for RFM95W on STM32H7 M4 Core
  *
@@ -221,6 +223,9 @@
     10. Repeat
  */
 
+#include "lora.h"
+#include "main.h"
+#include <stdint.h>
 
  /* ─── Register addresses ─────────────────────────────────────────── */
 #define REG_FIFO                 0x00
@@ -234,7 +239,6 @@
 #define REG_FIFO_RX_BASE_ADDR    0x0F
 #define REG_IRQ_FLAGS            0x12
 #define REG_TX_CFG               0x16
-#define REG_PAYLOAD_LENGTH       0x17
 
 #define REG_MODEM_CFG_1          0x1D
 
@@ -245,7 +249,6 @@
 #define REG_NB_RX_BYTES          0x1D
 #define REG_RX_HEADER_INFO       0x1E
 #define REG_RX_DATA_ADDR         0x26
-#define REG_IRQ_FLAGS            0x10
 #define REG_TX_CFG               0x16
 #define REG_PAYLOAD_LENGTH       0x22
 #define REG_NB_RX_BYTES          0x1D
@@ -259,6 +262,11 @@
 #define CS_HIGH()  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_14, GPIO_PIN_SET)
 #define RESET_LOW()  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_0, GPIO_PIN_RESET)  // TODO: adjust pin
 #define RESET_HIGH() HAL_GPIO_WritePin(GPIOA, GPIO_PIN_0, GPIO_PIN_SET)    // TODO: adjust pin
+
+
+
+extern SPI_HandleTypeDef hspi1;
+
 
 
 /*
@@ -307,6 +315,7 @@ static void SPI_FIFO_tx(uint8_t *data, uint8_t len)
 
 int LoRa_init(void){
     // hardware reset
+
     RESET_LOW();
     HAL_Delay(1);
     RESET_HIGH();
@@ -314,6 +323,8 @@ int LoRa_init(void){
 
     // verify chip
     uint8_t version = SPI_rx_byte(REG_VERSION);
+    Debug_LED_Toggle('y');
+
     if(version != 0x11){
         // set red LED high
         return -1;
