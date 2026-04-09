@@ -24,6 +24,7 @@ then
     printf "Flashing CM4...\n"
     openocd -f interface/stlink.cfg \
             -f target/stm32h7x.cfg \
+            -c "flash bank stm32h7x_bank2 stm32h7x 0x08100000 0 0 0 [target current]" \
             -c "program CM4/build/Autonomaus_Sailboat_CM4.elf verify reset exit"
 fi
 
