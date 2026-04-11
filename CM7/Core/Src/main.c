@@ -221,4 +221,5 @@ void rtos_init()
   button_rtosInit();
   servoSail_rtosInit();
   sensorWind_rtosInit();
+  magnometer_hardwareInit();
 }
