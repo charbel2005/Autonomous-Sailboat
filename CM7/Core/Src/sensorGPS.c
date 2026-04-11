@@ -11,6 +11,7 @@
 TaskHandle_t task_sensorGPS
 
 void magnetometer_handle(void *argument);
+I2C_HandleTypeDef I2C_BNO055_Handle;
 
 /**
   * Initialize the hardware.
@@ -31,4 +32,13 @@ void magnometer_hardwareInit()
 
   GPIO_InitStruct.Pin = GPIO_PIN_1;
   HAL_GPIO_Init(GPIOF, &GPIO_InitStruct);
+
+  // HAL_StatusTypeDef HAL_I2C_Init(I2C_HandleTypeDef *hi2c);                      line 601 of Stm32h7xx_hal_i2c.h
+  // I2C_TypeDef                *Instance;      /*!< I2C registers base address    line 186 of Stm32h7xx_hal_i2c.h
+  // I2C_InitTypeDef            Init;           /*!< I2C communication parameters  line 187 of Stm32h7xx_hal_i2c.h
+    I2C_BNO055_Handle.Instance = I2C2;
+    I2C_BNO055_Handle
+
 }
+
+// 0xAA is the start byte
