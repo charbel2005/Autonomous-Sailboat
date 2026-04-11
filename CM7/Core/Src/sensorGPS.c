@@ -22,21 +22,21 @@ void magnometer_hardwareInit()
     // Page 65 of the chip datasheet says pf0 and pf1 are I2c_SDA and I2c_SCL
     // added  __HAL_RCC_GPIOF_CLK_ENABLE(); to the main.c
     // added __HAL_RCC_I2C2_CLK_ENABLE(); to the main.c
-  GPIO_InitTypeDef GPIO_InitStruct = {0};
+    GPIO_InitTypeDef GPIO_InitStruct = {0};
 
-  GPIO_InitStruct.Pin = GPIO_PIN_0;
-  GPIO_InitStruct.Mode = GPIO_MODE_AF_OD; // Open Drain - OD
-  GPIO_InitStruct.Pull = GPIO_NOPULL; 
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  GPIO_InitStruct.Alternate = GPIO_AF4_I2C2;
-  HAL_GPIO_Init(GPIOF, &GPIO_InitStruct);
+    GPIO_InitStruct.Pin = GPIO_PIN_0;
+    GPIO_InitStruct.Mode = GPIO_MODE_AF_OD; // Open Drain - OD
+    GPIO_InitStruct.Pull = GPIO_NOPULL; 
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+    GPIO_InitStruct.Alternate = GPIO_AF4_I2C2;
+    HAL_GPIO_Init(GPIOF, &GPIO_InitStruct);
 
-  GPIO_InitStruct.Pin = GPIO_PIN_1;
-  HAL_GPIO_Init(GPIOF, &GPIO_InitStruct);
+    GPIO_InitStruct.Pin = GPIO_PIN_1;
+    HAL_GPIO_Init(GPIOF, &GPIO_InitStruct);
 
-  // HAL_StatusTypeDef HAL_I2C_Init(I2C_HandleTypeDef *hi2c);                      line 601 of Stm32h7xx_hal_i2c.h
-  // I2C_TypeDef                *Instance;      /*!< I2C registers base address    line 186 of Stm32h7xx_hal_i2c.h
-  // I2C_InitTypeDef            Init;           /*!< I2C communication parameters  line 187 of Stm32h7xx_hal_i2c.h
+    // HAL_StatusTypeDef HAL_I2C_Init(I2C_HandleTypeDef *hi2c);                      line 601 of Stm32h7xx_hal_i2c.h
+    // I2C_TypeDef                *Instance;      /*!< I2C registers base address    line 186 of Stm32h7xx_hal_i2c.h
+    // I2C_InitTypeDef            Init;           /*!< I2C communication parameters  line 187 of Stm32h7xx_hal_i2c.h
     I2C_BNO055_Handle.Instance = I2C2; 
     // The board's clock rate is 64MHz accoding to servoSail.c
 
@@ -53,10 +53,23 @@ void magnometer_hardwareInit()
     I2C_BNO055_Handle.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
     HAL_I2C_Init(&I2C_BNO055_Handle);
     // then we need to do the write transaciton
-    uint8_t reg = 0x0F;
-
+    uint8_t reg = 0x00; // Don't know what
+    uint8_t chip_id = 0;
+    // the chip is 0xA0  on https://www.bosch-sensortec.com/media/boschsensortec/downloads/datasheets/bst-bno055-ds000.pdf
+    // HAL_StatusTypeDef HAL_I2C_Master_Receive and HAL_I2C_Master_Receive parameters:
+    // I2C_HandleTypeDef *hi2c, - I2C_BNO055_Handle,
+    // uint16_t DevAddress, - BNO055_ADDR The header above,
+    // uint8_t *pData, - &chip_id,
+    // uint16_t Size, - The amount of bytes we are reading,
+    // uint32_t Timeout); - The delay,
     HAL_I2C_Master_Transmit(&I2C_BNO055_Handle, BNO055_ADDR << 1, &reg, 1, HAL_MAX_DELAY);
-    // we do 1 cause we want to write data to there
+
+    HAL_I2C_Master_Receive(&I2C_BNO055_Handle, BNO055_ADDR << 1, &reg, 1, HAL_MAX_DELAY);
+    // we right shift by 1 cause we want to write data to there, 8 bit address total
+    if(chip_id == 0xA0)
+    {
+        // we know we're talking to the sensor once this is true
+    }
 }
 
 // 0xAA is the start byte
