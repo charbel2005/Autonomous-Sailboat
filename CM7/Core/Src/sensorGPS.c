@@ -46,7 +46,24 @@ void magnometer_hardwareInit()
     // PRESC = 6: Divides 64MHz down to a manageable internal frequency.
 
     // SCLH/SCLL: Set to create a symmetrical 100kHz square wave.
-    I2C_BNO055_Handle.Init.Timing = 0x60201E28; // <- need to see if this is correct.
+    // (1 + 1)/ 64MHZ = 31.25 ns t_{prescaler} - so prescaler is 0x1
+
+    // SCLDEL = 7, 31.25 * 7 = 250ns of set up time
+
+    // t_{sclh} - 125 (really is 126) - 
+
+    // t_{scll + 1} - 188 (really is 189) - 
+
+    // t_{SCLH} = t_{sclh + 1} * t_{prescaler} = 3937.5 ns
+
+    // t_{SCLL} = t_{scll + 1} * t_{prescaler} = 5906.25 ns
+
+    // 3937.5 + 5906.25 = 9843.75 - The period
+
+    // freq = 1/ period = 101khz-ish ~= basically 100khz (really is 101khz) we can do more specific math later
+
+    // The Total = t_{SCLL} + t_{SCLH} high and low durations
+    I2C_BNO055_Handle.Init.Timing = 0x107DBC; // <- need to see if this is correct.
     // (1+1)/64MHZ = 31.25 NS
     // 
     I2C_BNO055_Handle.Init.I2C_ADDRESSINGMODE_7BIT
