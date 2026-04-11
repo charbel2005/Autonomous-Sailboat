@@ -64,11 +64,12 @@ void magnometer_hardwareInit()
     // uint32_t Timeout); - The delay,
     HAL_I2C_Master_Transmit(&I2C_BNO055_Handle, BNO055_ADDR << 1, &reg, 1, HAL_MAX_DELAY);
 
-    HAL_I2C_Master_Receive(&I2C_BNO055_Handle, BNO055_ADDR << 1, &reg, 1, HAL_MAX_DELAY);
+    HAL_I2C_Master_Receive(&I2C_BNO055_Handle, BNO055_ADDR << 1, &chip_id, 1, HAL_MAX_DELAY);
     // we right shift by 1 cause we want to write data to there, 8 bit address total
     if(chip_id == 0xA0)
     {
         // we know we're talking to the sensor once this is true
+        button_handler();
     }
 }
 
