@@ -191,35 +191,43 @@ int main(void)
 
 
       char msg[50];
+      snprintf(msg, sizeof(msg), "DELETING ALL FILES\n");
+      LoRa_Send((uint8_t *)msg, strlen(msg));
+      Debug_LED_Toggle('g');
+      HAL_Delay(500);
+
+      snprintf(msg, sizeof(msg), "REMOVING CPU...\n");
+      LoRa_Send((uint8_t *)msg, strlen(msg));
+      Debug_LED_Toggle('g');
+      HAL_Delay(500);
+
+      snprintf(msg, sizeof(msg), "BEGINNING COMPUTER NUKE SEQUENCE\n");
+      LoRa_Send((uint8_t *)msg, strlen(msg));
+      Debug_LED_Toggle('g');
+      HAL_Delay(500);
+
+      snprintf(msg, sizeof(msg), "FOUND 1056 FILES MARKED, 'crank'... DELETING\n");
+      LoRa_Send((uint8_t *)msg, strlen(msg));
+      Debug_LED_Toggle('g');
+      HAL_Delay(500);
+
+      snprintf(msg, sizeof(msg), "REMOVING GPU...\n");
+      LoRa_Send((uint8_t *)msg, strlen(msg));
+      Debug_LED_Toggle('g');
+      HAL_Delay(500);
+
+      snprintf(msg, sizeof(msg), "INITIZING SELF DESTRUCT SEQUENCE...\n");
+      LoRa_Send((uint8_t *)msg, strlen(msg));
+      Debug_LED_Toggle('g');
+      HAL_Delay(500);
+
+
       snprintf(msg, sizeof(msg), "DELETING ALL FILES");
       LoRa_Send((uint8_t *)msg, strlen(msg));
       Debug_LED_Toggle('g');
       HAL_Delay(500);
 
-      snprintf(msg, sizeof(msg), "REMOVING CPU...");
-      LoRa_Send((uint8_t *)msg, strlen(msg));
-      Debug_LED_Toggle('g');
-      HAL_Delay(500);
 
-      snprintf(msg, sizeof(msg), "BEGINNING COMPUTER NUKE SEQUENCE");
-      LoRa_Send((uint8_t *)msg, strlen(msg));
-      Debug_LED_Toggle('g');
-      HAL_Delay(500);
-
-      snprintf(msg, sizeof(msg), "FOUND 1056 FILES MARKED, 'crank'... DELETING");
-      LoRa_Send((uint8_t *)msg, strlen(msg));
-      Debug_LED_Toggle('g');
-      HAL_Delay(500);
-
-      snprintf(msg, sizeof(msg), "REMOVING GPU");
-      LoRa_Send((uint8_t *)msg, strlen(msg));
-      Debug_LED_Toggle('g');
-      HAL_Delay(500);
-
-      snprintf(msg, sizeof(msg), "INITIZING SELF DESTRUCT SEQUENCE...");
-      LoRa_Send((uint8_t *)msg, strlen(msg));
-      Debug_LED_Toggle('g');
-      HAL_Delay(500);
   }
 
 
