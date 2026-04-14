@@ -20,6 +20,7 @@
 #include "main.h"
 #include "lora.h"
 #include <stdint.h>
+#include <string.h>
 
 #include "stm32h7xx_hal_conf.h"
 #include "stm32h7xx_hal_gpio.h"
@@ -95,7 +96,7 @@ static void SystemClock_Config(void);
   * @retval int
   */
 int main(void)
-{
+  {
 
   /* USER CODE BEGIN 1 */
 
@@ -141,6 +142,8 @@ int main(void)
       .Parity     = COM_PARITY_NONE,
       .HwFlowCtl  = COM_HWCONTROL_NONE,
   };
+
+
   BSP_COM_Init(COM1, &com);
   setvbuf(stdout, NULL, _IONBF, 0);
   MX_SPI1_Init();
@@ -169,7 +172,7 @@ int main(void)
       .battery    = 95,
   };
 
-  char message[] = "Hello from harrisons laptop!";
+  char message[] = "Hello from harrisons laptop!\n";
 
   /* USER CODE END 2 */
 
@@ -177,16 +180,49 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-    /* USER CODE END WHILE */
+      // for (int i = 0; i < 100; i++)
+      // {
+      //     char msg[50];
+      //     snprintf(msg, sizeof(msg), "DELETING ALL FILES", i);
+      //     LoRa_Send((uint8_t *)msg, strlen(msg));
+      //     Debug_LED_Toggle('g');
+      //     HAL_Delay(1000);
+      // }
 
-    printf("Sending packet...\r\n");
-    LoRa_Send((uint8_t *)&message, sizeof(message));
-    printf("Packet sent.\r\n");
-    Debug_LED_Toggle('y');
-    HAL_Delay(1000);
-    
-    /* USER CODE BEGIN 3 */
+
+      char msg[50];
+      snprintf(msg, sizeof(msg), "DELETING ALL FILES");
+      LoRa_Send((uint8_t *)msg, strlen(msg));
+      Debug_LED_Toggle('g');
+      HAL_Delay(500);
+
+      snprintf(msg, sizeof(msg), "REMOVING CPU...");
+      LoRa_Send((uint8_t *)msg, strlen(msg));
+      Debug_LED_Toggle('g');
+      HAL_Delay(500);
+
+      snprintf(msg, sizeof(msg), "BEGINNING COMPUTER NUKE SEQUENCE");
+      LoRa_Send((uint8_t *)msg, strlen(msg));
+      Debug_LED_Toggle('g');
+      HAL_Delay(500);
+
+      snprintf(msg, sizeof(msg), "FOUND 1056 FILES MARKED, 'crank'... DELETING");
+      LoRa_Send((uint8_t *)msg, strlen(msg));
+      Debug_LED_Toggle('g');
+      HAL_Delay(500);
+
+      snprintf(msg, sizeof(msg), "REMOVING GPU");
+      LoRa_Send((uint8_t *)msg, strlen(msg));
+      Debug_LED_Toggle('g');
+      HAL_Delay(500);
+
+      snprintf(msg, sizeof(msg), "INITIZING SELF DESTRUCT SEQUENCE...");
+      LoRa_Send((uint8_t *)msg, strlen(msg));
+      Debug_LED_Toggle('g');
+      HAL_Delay(500);
   }
+
+
   /* USER CODE END 3 */
 }
 
