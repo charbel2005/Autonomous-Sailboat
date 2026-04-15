@@ -372,9 +372,6 @@
 /* ------------------------------------------------------------------ */
 /* Config                                                               */
 /* ------------------------------------------------------------------ */
-#define TASK_NAME       "SensorWindTask"
-#define TASK_STACK_SIZE 512
-#define TASK_PRIORITY   osPriorityAboveNormal
 
 #define SENSOR_ADDRESS  0x02  // Default per protocol spec
 
@@ -388,7 +385,6 @@ UART_HandleTypeDef  UART4_Handler = {0};
 /* Forward declarations                                                 */
 /* ------------------------------------------------------------------ */
 static void     sensorWind_uart4Init(void);
-void            sensorWind_handler(void *argument);
 
 static uint16_t crc16(const uint8_t *buf, int len);
 static void     append_crc(uint8_t *buf, int len);
@@ -440,18 +436,6 @@ void sensorWind_hardwareInit(void)
 
 //     printf("UART4 init complete\r\n");
 // }
-
-/* ------------------------------------------------------------------ */
-/* RTOS init                                                            */
-/* ------------------------------------------------------------------ */
-void sensorWind_rtosInit(void)
-{
-    if (xTaskCreate(sensorWind_handler, TASK_NAME, TASK_STACK_SIZE,
-                    NULL, TASK_PRIORITY, &task_sensorWind) != pdPASS)
-    {
-        Error_Handler();
-    }
-}
 
 // /* ------------------------------------------------------------------ */
 // /* Task handler                                                         */

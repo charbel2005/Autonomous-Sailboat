@@ -9,9 +9,13 @@
 #include <stdint.h>
 
 #include "button.h"
+
 #include "servoSail.h"
+#include "servoRudder.h"
+
 #include "sensorWind.h"
 #include "sensorMagnetometer.h"
+#include "sensorGPS.h"
 
 /* Private includes ----------------------------------------------------------*/
 
@@ -211,9 +215,11 @@ void hardware_init(void)
   button_hardwareInit();
 
   servoSail_hardwareInit();
+  servoRudder_hardwareInit();
 
   sensorWind_hardwareInit();
   sensorMagnetometer_hardwareInit();
+  sensorGPS_hardwareInit();
   /* USER CODE END SysInit */
 
   /* USER CODE BEGIN 2 */
@@ -226,10 +232,12 @@ void hardware_init(void)
   */
 void rtos_init()
 {
-  button_rtosInit();
+  if ((semphr_button = xSemaphoreCreateBinary()) == NULL) { Error_Handler(); }
 
-  servoSail_rtosInit();
-  
-  sensorWind_rtosInit();
-  sensorMagnetometer_rtosInit();
+  if (xTaskCreate(button_handler,             "buttonTask",             64,  NULL, osPriorityNormal,      &task_button)             != pdPASS) { Error_Handler(); }
+  if (xTaskCreate(servoSail_handler,          "servoSailTask",          128, NULL, osPriorityNormal,      &task_servoSail)          != pdPASS) { Error_Handler(); }
+  if (xTaskCreate(servoRudder_handler,        "servoRudderTask",        128, NULL, osPriorityNormal,      &task_servoRudder)        != pdPASS) { Error_Handler(); }
+  if (xTaskCreate(sensorWind_handler,         "sensorWindTask",         512, NULL, osPriorityAboveNormal, &task_sensorWind)         != pdPASS) { Error_Handler(); }
+  if (xTaskCreate(sensorMagnetometer_handler, "sensorMagnetometerTask", 128, NULL, osPriorityAboveNormal, &task_sensorMagnetometer) != pdPASS) { Error_Handler(); }
+  if (xTaskCreate(sensorGPS_handler,          "sensorGPSTask",          128, NULL, osPriorityAboveNormal, &task_sensorGPS)          != pdPASS) { Error_Handler(); }
 }

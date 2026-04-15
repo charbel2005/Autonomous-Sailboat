@@ -1,11 +1,6 @@
 
-#include "cmsis_os2.h"
 #include "main.h"
 #include "servoSail.h"
-
-#define TASK_NAME "ServoSailTask"
-#define TASK_STACK_SIZE 128
-#define TASK_PRIORITY osPriorityAboveNormal
 
 #define SERVO_CLOCK_FREQUENCY_HZ 1000000
 #define SERVO_PWM_FREQUENCY_HZ 50
@@ -17,8 +12,6 @@
 
 TaskHandle_t task_servoSail;
 TIM_HandleTypeDef servo_tim1;
-
-void servoSail_handler(void *argument);
 
 /**
   * Initialize the hardware.
@@ -59,30 +52,12 @@ void servoSail_hardwareInit()
   if (HAL_TIM_PWM_Start(&servo_tim1, TIM_CHANNEL_1) != HAL_OK) { Error_Handler(); }
 }
 
-/**
-  * Initialize the RTOS components.
-  */
-void servoSail_rtosInit()
-{
-  // if (xTaskCreate(servoSail_handler, TASK_NAME, TASK_STACK_SIZE, NULL, TASK_PRIORITY, &task_servoSail) != pdPASS) { Error_Handler(); }
-}
-
-/**
-  * Handler for the task.
-  */
 void servoSail_handler(void *argument)
 {
-  // for(;;)
-  // {
-  //   servoSail_setAngle(0);
-  //   vTaskDelay(pdMS_TO_TICKS(1000));
-  //   servoSail_setAngle(90);
-  //   vTaskDelay(pdMS_TO_TICKS(1000));
-  //   servoSail_setAngle(0);
-  //   vTaskDelay(pdMS_TO_TICKS(1000));
-  //   servoSail_setAngle(-90);
-  //   vTaskDelay(pdMS_TO_TICKS(1000));
-  // }
+    for(;;)
+    {
+        vTaskDelay(pdMS_TO_TICKS(1000)); // Delay for demonstration purposes
+    }
 }
 
 void servoSail_setAngle(int16_t angle)

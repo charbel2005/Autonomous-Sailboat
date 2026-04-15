@@ -1,5 +1,5 @@
 
-extern TaskHandle_t task_servoSail;
+extern TaskHandle_t task_sensorWind;
 
 void sensorWind_hardwareInit();
-void sensorWind_rtosInit();
+void sensorWind_handler(void *argument);

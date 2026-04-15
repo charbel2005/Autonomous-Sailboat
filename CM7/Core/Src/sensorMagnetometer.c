@@ -1,15 +1,11 @@
 #include "main.h"
-
-#define TASK_NAME "magnetometerTask"
-#define TASK_STACK_SIZE 128
-#define TASK_PRIORITY osPriorityAboveNormal
+#include "sensorMagnetometer.h"
 
 #define BNO055_ADDR  0x29  // default, COM3 high Try 0x28 if this doesn't work
 #define BNO055_WHO_AM_I 0x00  // chip ID register
 
 TaskHandle_t task_sensorMagnetometer;
 
-void sensorMagnetometer_handle(void *argument);
 void sensorMagnetometer_readWhoAmI();
 
 I2C_HandleTypeDef I2C_BNO055_Handle;
@@ -111,17 +107,9 @@ void sensorMagnetometer_hardwareInit()
 // 0xAA is the start byte
 
 /**
-  * Initialize the RTOS components.
-  */
-void sensorMagnetometer_rtosInit()
-{
-    if (xTaskCreate(sensorMagnetometer_handle, TASK_NAME, TASK_STACK_SIZE, NULL, TASK_PRIORITY, &task_sensorMagnetometer) != pdPASS) { Error_Handler(); }
-}
-
-/**
   * Handler for the task.
   */
-void sensorMagnetometer_handle(void *argument)
+void sensorMagnetometer_handler(void *argument)
 {
     for(;;)
     {
