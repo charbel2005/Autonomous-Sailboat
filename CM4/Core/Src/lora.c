@@ -256,6 +256,16 @@
 #define REG_RX_DATA_ADDR         0x26
 #define REG_VERSION              0x42
 
+/* ─── RX registers (added for receive support) ───────────────────── */
+#define REG_FIFO_RX_CURRENT_ADDR 0x10   /* FIFO address of start of last received packet */
+#define REG_RX_NB_BYTES          0x13   /* number of bytes in last received payload */
+#define REG_DIO_MAPPING_1        0x40   /* DIO0 mapping: 0x00=RxDone, 0x40=TxDone */
+
+/* IRQ flag bits */
+#define IRQ_RX_DONE              0x40
+#define IRQ_PAYLOAD_CRC_ERROR    0x20
+#define IRQ_TX_DONE              0x08
+
 /* Helper functions */
 
 #define CS_LOW()   HAL_GPIO_WritePin(GPIOD, GPIO_PIN_14, GPIO_PIN_RESET)
@@ -385,23 +395,98 @@ void LoRa_Send(uint8_t *data, uint8_t len){
 
     SPI_FIFO_tx(data, len);
     SPI_tx_byte(REG_PAYLOAD_LENGTH, len);
-    printf("[TX] payload_len reg readback: %d\r\n", SPI_rx_byte(REG_PAYLOAD_LENGTH));
+    // printf("[TX] payload_len reg readback: %d\r\n", SPI_rx_byte(REG_PAYLOAD_LENGTH));
     SPI_tx_byte(REG_IRQ_FLAGS, 0xff);
 
     SPI_tx_byte(REG_OP_MODE, 0x83);
-    printf("[TX] TX mode triggered, waiting for TxDone...\r\n");
+    // printf("[TX] TX mode triggered, waiting for TxDone...\r\n");
 
     uint32_t start = HAL_GetTick();
     while(!(SPI_rx_byte(REG_IRQ_FLAGS) & 0x08)){
         if (HAL_GetTick() - start > 2000)
         {
-            printf("[TX] timeout! IRQ flags: 0x%02X\r\n", SPI_rx_byte(REG_IRQ_FLAGS));
+            // printf("[TX] timeout! IRQ flags: 0x%02X\r\n", SPI_rx_byte(REG_IRQ_FLAGS));
             break;
         }
     }
 
-    printf("[TX] done. IRQ flags: 0x%02X\r\n", SPI_rx_byte(REG_IRQ_FLAGS));
+    // printf("[TX] done. IRQ flags: 0x%02X\r\n", SPI_rx_byte(REG_IRQ_FLAGS));
     // clear irq flags and return to standby
     SPI_tx_byte(REG_IRQ_FLAGS, 0xff);
     SPI_tx_byte(REG_OP_MODE, 0x81);
+}
+
+static void SPI_FIFO_rx(uint8_t *buf, uint8_t len)
+{
+    uint8_t addr = REG_FIFO & 0x7F;    /* FIFO register with read bit clear */
+
+    CS_LOW();
+    HAL_SPI_Transmit(&hspi1, &addr, 1, HAL_MAX_DELAY);
+    HAL_SPI_Receive(&hspi1, buf, len, HAL_MAX_DELAY);
+    CS_HIGH();
+}
+
+/*
+   Listen for an incoming LoRa packet (continuous RX mode, polling).
+   Blocks until a packet arrives or timeout_ms elapses.
+
+   Returns the number of bytes received, or -1 on CRC error, or 0 on timeout.
+   Received bytes are written into buf (caller must provide at least 255 bytes).
+*/
+int LoRa_Receive(uint8_t *buf, uint32_t timeout_ms)
+{
+    // standby before reconfiguring
+    SPI_tx_byte(REG_OP_MODE, 0x81);
+    HAL_Delay(1);
+
+    // point FIFO address ptr to RX base
+    SPI_tx_byte(REG_FIFO_ADDR_PTR, 0x00);
+
+    // map DIO0 to RxDone (THIS WILL BE USED LATER SO WE CAN PUT THE STM INTO SLEEP AND WFI ON THE GPIO PIN FOR AN INTERRUPT -harrison)
+    SPI_tx_byte(REG_DIO_MAPPING_1, 0x00);
+
+    // clear IRQ flags
+    SPI_tx_byte(REG_IRQ_FLAGS, 0xFF);
+
+    // enter continuous RX mode
+    SPI_tx_byte(REG_OP_MODE, 0x85);
+    // printf("[RX] listening...\r\n");
+
+    // poll for RxDone (CHANGE TO INTERRUPT FOR LOW POWER LATER - harrison)
+    uint32_t start = HAL_GetTick();
+    while (!(SPI_rx_byte(REG_IRQ_FLAGS) & IRQ_RX_DONE)) {
+        if (HAL_GetTick() - start > timeout_ms) {
+            printf("[RX] timeout\r\n");
+            SPI_tx_byte(REG_OP_MODE, 0x81);
+            return 0;
+        }
+    }
+
+    uint8_t irq = SPI_rx_byte(REG_IRQ_FLAGS);
+    // printf("[RX] done. IRQ flags: 0x%02X\r\n", irq);
+
+    // check for CRC error
+    if (irq & IRQ_PAYLOAD_CRC_ERROR) {
+        printf("[RX] CRC error, discarding\r\n");
+        SPI_tx_byte(REG_IRQ_FLAGS, 0xFF);
+        SPI_tx_byte(REG_OP_MODE, 0x81);
+        return -1;
+    }
+
+    // find where in the FIFO the packet landed and how long it is
+    uint8_t pkt_addr = SPI_rx_byte(REG_FIFO_RX_CURRENT_ADDR);
+    uint8_t pkt_len  = SPI_rx_byte(REG_RX_NB_BYTES);
+    // printf("[RX] pkt_addr=0x%02X len=%d\r\n", pkt_addr, pkt_len);
+
+    // seek FIFO pointer to the packet start and burst-read
+    SPI_tx_byte(REG_FIFO_ADDR_PTR, pkt_addr);
+    SPI_FIFO_rx(buf, pkt_len);
+
+    // printf("[RX] received %d bytes: ", pkt_len);
+
+    // clear flags and return to standby
+    SPI_tx_byte(REG_IRQ_FLAGS, 0xFF);
+    SPI_tx_byte(REG_OP_MODE, 0x81);
+
+    return pkt_len;
 }

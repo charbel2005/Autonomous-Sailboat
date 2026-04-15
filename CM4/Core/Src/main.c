@@ -142,10 +142,11 @@ int main(void)
       .Parity     = COM_PARITY_NONE,
       .HwFlowCtl  = COM_HWCONTROL_NONE,
   };
-
-
   BSP_COM_Init(COM1, &com);
   setvbuf(stdout, NULL, _IONBF, 0);
+  
+  
+  
   MX_SPI1_Init();
 
   Debug_LED_Init();
@@ -172,7 +173,7 @@ int main(void)
       .battery    = 95,
   };
 
-  char message[] = "Hello from harrisons laptop!\n";
+  // char message[] = "Hello from harrisons laptop!\n";
 
   /* USER CODE END 2 */
 
@@ -190,43 +191,69 @@ int main(void)
       // }
 
 
-      char msg[50];
-      snprintf(msg, sizeof(msg), "DELETING ALL FILES\n");
-      LoRa_Send((uint8_t *)msg, strlen(msg));
-      Debug_LED_Toggle('g');
-      HAL_Delay(500);
+      // char msg[50];
+      // snprintf(msg, sizeof(msg), "DELETING ALL FILES\n");
+      // LoRa_Send((uint8_t *)msg, strlen(msg));
+      // Debug_LED_Toggle('g');
+      // HAL_Delay(500);
 
-      snprintf(msg, sizeof(msg), "REMOVING CPU...\n");
-      LoRa_Send((uint8_t *)msg, strlen(msg));
-      Debug_LED_Toggle('g');
-      HAL_Delay(500);
+      // snprintf(msg, sizeof(msg), "REMOVING CPU...\n");
+      // LoRa_Send((uint8_t *)msg, strlen(msg));
+      // Debug_LED_Toggle('g');
+      // HAL_Delay(500);
 
-      snprintf(msg, sizeof(msg), "BEGINNING COMPUTER NUKE SEQUENCE\n");
-      LoRa_Send((uint8_t *)msg, strlen(msg));
-      Debug_LED_Toggle('g');
-      HAL_Delay(500);
+      // snprintf(msg, sizeof(msg), "BEGINNING COMPUTER NUKE SEQUENCE\n");
+      // LoRa_Send((uint8_t *)msg, strlen(msg));
+      // Debug_LED_Toggle('g');
+      // HAL_Delay(500);
 
-      snprintf(msg, sizeof(msg), "FOUND 1056 FILES MARKED, 'crank'... DELETING\n");
-      LoRa_Send((uint8_t *)msg, strlen(msg));
-      Debug_LED_Toggle('g');
-      HAL_Delay(500);
+      // snprintf(msg, sizeof(msg), "FOUND 1056 FILES MARKED, 'crank'... DELETING\n");
+      // LoRa_Send((uint8_t *)msg, strlen(msg));
+      // Debug_LED_Toggle('g');
+      // HAL_Delay(500);
 
-      snprintf(msg, sizeof(msg), "REMOVING GPU...\n");
-      LoRa_Send((uint8_t *)msg, strlen(msg));
-      Debug_LED_Toggle('g');
-      HAL_Delay(500);
+      // snprintf(msg, sizeof(msg), "REMOVING GPU...\n");
+      // LoRa_Send((uint8_t *)msg, strlen(msg));
+      // Debug_LED_Toggle('g');
+      // HAL_Delay(500);
 
-      snprintf(msg, sizeof(msg), "INITIZING SELF DESTRUCT SEQUENCE...\n");
-      LoRa_Send((uint8_t *)msg, strlen(msg));
-      Debug_LED_Toggle('g');
-      HAL_Delay(500);
+      // snprintf(msg, sizeof(msg), "INITIZING SELF DESTRUCT SEQUENCE...\n");
+      // LoRa_Send((uint8_t *)msg, strlen(msg));
+      // Debug_LED_Toggle('g');
+      // HAL_Delay(500);
 
 
-      snprintf(msg, sizeof(msg), "DELETING ALL FILES");
-      LoRa_Send((uint8_t *)msg, strlen(msg));
-      Debug_LED_Toggle('g');
-      HAL_Delay(500);
+      // snprintf(msg, sizeof(msg), "DELETING ALL FILES");
+      // LoRa_Send((uint8_t *)msg, strlen(msg));
+      // Debug_LED_Toggle('g');
+      // HAL_Delay(500);
 
+      LoRa_Send("JARED SEND SOMETHING", sizeof("JARED SEND SOMETHING"));
+
+      char rx_buf[255];
+
+      int n = LoRa_Receive(rx_buf, 2000);
+      if (n > 0) {
+          printf("%c", rx_buf[0]);
+          if (rx_buf[0] == 'y') {
+              Debug_LED_Toggle('y');
+              LoRa_Send((uint8_t *)"Recieved 'y', toggled yellow LED.", strlen("Recieved 'y', toggled yellow LED."));
+          }
+          else if (rx_buf[0] == 'g') {
+              Debug_LED_Toggle('g');
+              LoRa_Send((uint8_t *)"Recieved 'g', toggled green LED.", strlen("Recieved 'g', toggled green LED."));
+          }
+          else if (rx_buf[0] == 'r') {
+              Debug_LED_Toggle('r');
+              LoRa_Send((uint8_t *)"Recieved 'r', toggled red LED.", strlen("Recieved 'r', toggled red LED."));
+          }
+      } else if (n == 0) {
+          printf("[RX] timeout\r\n");
+      } else {
+          printf("[RX] error\r\n");
+      }
+
+      
 
   }
 
