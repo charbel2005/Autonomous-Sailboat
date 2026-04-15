@@ -1,22 +1,23 @@
-// #include "cmsis_os2.h"
 #include "main.h"
-// #include "servoSail.h"
 
 #define TASK_NAME "magnetometerTask"
 #define TASK_STACK_SIZE 128
 #define TASK_PRIORITY osPriorityAboveNormal
+
 #define BNO055_ADDR  0x29  // default, COM3 high Try 0x28 if this doesn't work
 #define BNO055_WHO_AM_I 0x00  // chip ID register
 
-TaskHandle_t task_sensorGPS;
+TaskHandle_t task_sensorMagnetometer;
 
-void magnetometer_handle(void *argument);
+void sensorMagnetometer_handle(void *argument);
+void sensorMagnetometer_readWhoAmI();
+
 I2C_HandleTypeDef I2C_BNO055_Handle;
 
 /**
   * Initialize the hardware.
   */
-void magnometer_hardwareInit()
+void sensorMagnetometer_hardwareInit()
 {
     // Page 65 of the chip datasheet says pf0 and pf1 are I2c_SDA and I2c_SCL
     // added  __HAL_RCC_GPIOF_CLK_ENABLE(); to the main.c
@@ -72,7 +73,28 @@ void magnometer_hardwareInit()
     // Use table example in reference manual (use 64Mhz base clock divide by 16 to get 4MHz)
     // For each frequency the tables prescales each frequency into 4Mhz and uses 4Mhz for every other settings
     // That's why prescale is 15 since 64MHz / 16 = 4MHz
-    I2C_BNO055_Handle.Init.Timing = 0xf0420f13;
+    //
+    // I2C TIMINGR register layout (RM0433 reference manual):
+    // [31:28] PRESC  - Prescaler: divides I2C kernel clock. tick = 1/(f_i2cclk / (PRESC+1))
+    // [27:24] (reserved, must be 0)
+    // [23:20] SCLDEL - SCL data setup delay (in prescaled ticks)
+    // [19:16] SDADEL - SDA data hold delay  (in prescaled ticks)
+    // [15:8]  SCLH   - SCL high period      (in prescaled ticks, actual = SCLH+1)
+    // [7:0]   SCLL   - SCL low period       (in prescaled ticks, actual = SCLL+1)
+    //
+    // With 64MHz kernel clock and PRESC=15: tick = 1/(64MHz/16) = 250ns
+    // SCLDEL=4 -> setup  = 5   * 250ns = 1250ns
+    // SDADEL=2 -> hold   = 2   * 250ns =  500ns
+    // SCLH=15  -> high   = 16  * 250ns = 4000ns
+    // SCLL=19  -> low    = 20  * 250ns = 5000ns
+    // f_SCL = 1 / (4000ns + 5000ns) ~= 111kHz (standard-mode 100kHz, rise/fall times account for the rest)
+    I2C_BNO055_Handle.Init.Timing =
+        (0xFU << 28) |  // PRESC  = 15 : 64MHz / 16 = 4MHz (250ns per tick)
+        (0x0U << 24) |  // reserved
+        (0x4U << 20) |  // SCLDEL =  4 : SCL data setup  = 5   ticks = 1.25us
+        (0x2U << 16) |  // SDADEL =  2 : SDA data hold   = 2   ticks = 500ns
+        (0x0FU << 8) |  // SCLH   = 15 : SCL high period = 16  ticks = 4us
+        (0x13U << 0);   // SCLL   = 19 : SCL low  period = 20  ticks = 5us
 
     I2C_BNO055_Handle.Init.AddressingMode =  I2C_ADDRESSINGMODE_7BIT;
     I2C_BNO055_Handle.Init.OwnAddress1 = 0;
@@ -84,7 +106,32 @@ void magnometer_hardwareInit()
         printf("I2C Init Error");
         Error_Handler();
     }
+}
 
+// 0xAA is the start byte
+
+/**
+  * Initialize the RTOS components.
+  */
+void sensorMagnetometer_rtosInit()
+{
+    if (xTaskCreate(sensorMagnetometer_handle, TASK_NAME, TASK_STACK_SIZE, NULL, TASK_PRIORITY, &task_sensorMagnetometer) != pdPASS) { Error_Handler(); }
+}
+
+/**
+  * Handler for the task.
+  */
+void sensorMagnetometer_handle(void *argument)
+{
+    for(;;)
+    {
+        sensorMagnetometer_readWhoAmI();
+        vTaskDelay(pdMS_TO_TICKS(1000)); // Delay for demonstration purposes
+    }
+}
+
+void sensorMagnetometer_readWhoAmI()
+{
     // then we need to do the write transaciton
     uint8_t reg = BNO055_WHO_AM_I; // Pretty sure this is right
     uint8_t chip_id = 0;
@@ -101,9 +148,10 @@ void magnometer_hardwareInit()
     // we right shift by 1 cause we want to write/read data to there, 8 bit address total
     if(chip_id == 0xA0) // The value we read: uint8_t reg = BNO055_WHO_AM_I;
     {
-        // we know we're talking to the sensor once this is true
-        button_handler();
+        printf("BNO055 WHO_AM_I OK: 0x%02X\r\n", chip_id);
+    }
+    else
+    {
+        printf("BNO055 WHO_AM_I FAILED: expected 0xA0, got 0x%02X\r\n", chip_id);
     }
 }
-
-// 0xAA is the start byte

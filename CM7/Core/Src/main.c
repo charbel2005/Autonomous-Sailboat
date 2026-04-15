@@ -7,8 +7,11 @@
 #include "stm32h7xx_hal_gpio.h"
 #include "stm32h7xx_hal_rcc.h"
 #include <stdint.h>
+
 #include "button.h"
 #include "servoSail.h"
+#include "sensorWind.h"
+#include "sensorMagnetometer.h"
 
 /* Private includes ----------------------------------------------------------*/
 
@@ -172,14 +175,16 @@ void assert_failed(uint8_t *file, uint32_t line)
 void hardware_init(void)
 {
   HAL_Init();
+  __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
   __HAL_RCC_GPIOC_CLK_ENABLE();
-  __HAL_RCC_GPIOF_CLK_ENABLE();
   __HAL_RCC_GPIOE_CLK_ENABLE();
+  __HAL_RCC_GPIOF_CLK_ENABLE();
+
   __HAL_RCC_TIM1_CLK_ENABLE();
   __HAL_RCC_UART4_CLK_ENABLE();
-  __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_I2C2_CLK_ENABLE();
+
   SystemClock_Config();
 
   #if defined(DUAL_CORE_BOOT_SYNC_SEQUENCE)
@@ -204,8 +209,11 @@ void hardware_init(void)
 
   /* USER CODE BEGIN SysInit */
   button_hardwareInit();
+
   servoSail_hardwareInit();
+
   sensorWind_hardwareInit();
+  sensorMagnetometer_hardwareInit();
   /* USER CODE END SysInit */
 
   /* USER CODE BEGIN 2 */
@@ -219,7 +227,9 @@ void hardware_init(void)
 void rtos_init()
 {
   button_rtosInit();
+
   servoSail_rtosInit();
+  
   sensorWind_rtosInit();
-  magnometer_hardwareInit();
+  sensorMagnetometer_rtosInit();
 }
