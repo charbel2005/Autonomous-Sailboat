@@ -14,6 +14,7 @@ void sensorGPS_hardwareInit() {
     // Will have to rewrite this part, we wrote code for the incorrect gps chip, we use m6, m6 uses UART
     // M9N is capable of I2c
      /* PA8 — UART7 RX */
+     // here is the sheet: http://content.u-blox.com/sites/default/files/products/documents/NEO-6_DataSheet_%28GPS.G6-HW-09005%29.pdf
     GPIO_InitTypeDef GPIO_InitStruct = {0};
     GPIO_InitStruct.Pin       = GPIO_PIN_8;
     GPIO_InitStruct.Mode      = GPIO_MODE_AF_PP;
@@ -54,7 +55,7 @@ void sensorGPS_hardwareInit() {
     printf("UART7 init complete on PA8(TX) / PA15(RX)\r\n");
     printf("  SYSCLK:  %lu Hz\r\n", sys_clk);
     printf("  APB1CLK: %lu Hz\r\n", apb1_clk);
-    printf("  Expected UART7 baud: 9600\r\n");
+    printf("  Expected UART7 baud: 9600\r\n"); // page 11 
   // Page 71 of the chip datasheet says pf15 and pf14 are I2c_SDA and I2c_SCL
 //   GPIO_InitTypeDef GPIO_InitStruct = {0};
 
