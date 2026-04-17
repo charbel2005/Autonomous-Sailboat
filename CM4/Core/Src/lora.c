@@ -277,7 +277,31 @@
 
 extern SPI_HandleTypeDef hspi1;
 
+/* ─── State machine ──────────────────────────────────────────────── */
+typedef enum { LORA_STATE_IDLE, LORA_STATE_TX, LORA_STATE_RX } LoRaState_t;
+static volatile LoRaState_t s_state = LORA_STATE_IDLE;
 
+static uint8_t          s_rx_buf[64];
+static uint8_t          s_rx_len;
+static volatile uint8_t s_rx_ready;
+
+/* DIO0: PG9, EXTI line 9 → EXTI9_5_IRQn */
+#define DIO0_PIN   GPIO_PIN_9
+#define DIO0_PORT  GPIOG
+
+static void DIO0_Init(void)
+{
+    __HAL_RCC_GPIOG_CLK_ENABLE();
+
+    GPIO_InitTypeDef g = {0};
+    g.Pin   = DIO0_PIN;
+    g.Mode  = GPIO_MODE_IT_RISING;
+    g.Pull  = GPIO_PULLDOWN;
+    HAL_GPIO_Init(DIO0_PORT, &g);
+
+    HAL_NVIC_SetPriority(EXTI9_5_IRQn, 6, 0);
+    HAL_NVIC_EnableIRQ(EXTI9_5_IRQn);
+}
 
 /*
    Write a single byte to the given register address
@@ -383,6 +407,7 @@ int LoRa_init(void){
     SPI_tx_byte(REG_OP_MODE, 0x81);
     HAL_Delay(1);
 
+    DIO0_Init();
     return 0;
 }
 
