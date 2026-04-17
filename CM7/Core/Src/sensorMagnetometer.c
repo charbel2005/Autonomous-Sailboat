@@ -3,6 +3,28 @@
 
 #define BNO055_ADDR  0x28  // default, COM3 high Try 0x28 if this doesn't work
 #define BNO055_WHO_AM_I 0x00  // chip ID register
+#define BNO055_ACC 0x01  // chip ID register
+#define BNO055_MAG 0x02  // chip ID register
+#define BNO055_GYRO 0x03  // chip ID register
+#define BNO055_ACCX_LSB 0x08  // chip ID register
+#define BNO055_ACCX_MSB 0x09  // chip ID register
+#define BNO055_ACCY_LSB 0x0A  // chip ID register
+#define BNO055_ACCY_MSB 0x0B  // chip ID register
+#define BNO055_ACCZ_LSB 0x0C  // chip ID register
+#define BNO055_ACCZ_MSB 0x0D  // chip ID register
+#define BNO055_MAGX_LSB 0x0E  // chip ID register
+#define BNO055_MAGX_MSB 0x0F  // chip ID register
+#define BNO055_MAGY_LSB 0x10  // chip ID register
+#define BNO055_MAGY_MSB 0x11  // chip ID register
+#define BNO055_MAGZ_LSB 0x12  // chip ID register
+#define BNO055_MAGZ_MSB 0x13  // chip ID register
+#define BNO055_GYRX_LSB 0x14  // chip ID register
+#define BNO055_GYRX_MSB 0x15  // chip ID register
+#define BNO055_GYRY_LSB 0x16  // chip ID register
+#define BNO055_GYRY_MSB 0x17  // chip ID register
+#define BNO055_GYRZ_LSB 0x18  // chip ID register
+#define BNO055_GYRZ_MSB 0x19  // chip ID register
+
 
 TaskHandle_t task_sensorMagnetometer;
 
@@ -114,46 +136,108 @@ void sensorMagnetometer_handler(void *argument)
     for(;;)
     {
         sensorMagnetometer_readWhoAmI();
+        sensorMagnetometer_readGYRO_Vector();
+        sensorMagnetometer_readMAG_Vector();
+        sensorMagnetometer_readACC_Vector();
         vTaskDelay(pdMS_TO_TICKS(1000)); // Delay for demonstration purposes
     }
 }
 
-void sensorMagnetometer_readWhoAmI()
+void sensorMagnetometer_readWhoAmI() {
+    sensorMagnetometer_readChip(BNO055_WHO_AM_I, "Who Am I");
+}
+
+void sensorMagnetometer_readChip(uint8_t regADDR, const char *name)
 {   
-    // then we need to do the write transaciton
-    uint8_t sendBuff = BNO055_WHO_AM_I; // Pretty sure this is right
     uint8_t receiveBuff = 0;
-    // the chip is 0xA0  on https://www.bosch-sensortec.com/media/boschsensortec/downloads/datasheets/bst-bno055-ds000.pdf
-    // HAL_StatusTypeDef HAL_I2C_Master_Receive and HAL_I2C_Master_Receive parameters:
-    // I2C_HandleTypeDef *hi2c, - I2C_BNO055_Handle,
-    // uint16_t DevAddress, - BNO055_ADDR The header above,
-    // uint8_t *pData, - &chip_id,
-    // uint16_t Size, - The amount of bytes we are reading,
-    // uint32_t Timeout); - The delay,
+    uint8_t expected = 0;
+
     HAL_StatusTypeDef info;
-    info = HAL_I2C_Master_Transmit(&I2C_BNO055_Handle, BNO055_ADDR << 1, &sendBuff, 1, 5000);
+
+    info = HAL_I2C_Master_Transmit(&I2C_BNO055_Handle, BNO055_ADDR << 1, &regADDR, 1, 5000);
     
     if (info != HAL_OK){
-        printf("Transmit FAILED, HAL status: %d, I2C error: 0x%lX\r\n", info, HAL_I2C_GetError(&I2C_BNO055_Handle));
+        printf("%s Transmit FAILED, HAL status: %d, I2C error: 0x%lX\r\n", name, info, HAL_I2C_GetError(&I2C_BNO055_Handle));
         return;
     }
-
-
 
     info = HAL_I2C_Master_Receive(&I2C_BNO055_Handle, BNO055_ADDR << 1, &receiveBuff, 1, 5000);
 
     if (info != HAL_OK) {
-        printf("Receive FAILED, HAL status: %d, I2C error: 0x%lX\r\n", info, HAL_I2C_GetError(&I2C_BNO055_Handle));
+        printf("%s Receive FAILED, HAL status: %d, I2C error: 0x%lX\r\n", name, info, HAL_I2C_GetError(&I2C_BNO055_Handle));
         return;
     }
 
-    // we right shift by 1 cause we want to write/read data to there, 8 bit address total
-    if(receiveBuff == 0xA0) // The value we read: uint8_t reg = BNO055_WHO_AM_I;
+    switch (regADDR) {
+        case BNO055_WHO_AM_I: expected = 0xA0; break;
+        case BNO055_ACC: expected = 0xFB; break;
+        case BNO055_MAG: expected = 0x32; break;
+        case BNO055_GYRO: expected = 0x0F; break;
+        default: expected = 0xff;
+    }
+
+    if(receiveBuff == expected)
     {
-        printf("BNO055 WHO_AM_I OK: 0x%02X\r\n", receiveBuff);
+        printf("BNO055 %s OK: 0x%02X\r\n", name, receiveBuff);
     }
     else
     {
-        printf("BNO055 WHO_AM_I FAILED: expected 0xA0, got 0x%02X\r\n", receiveBuff);
+        printf("BNO055 %s FAILED: expected 0xFB, got 0x%02X\r\n", name, receiveBuff);
     }
+}
+
+void sensorMagnetometer_readMAG()
+{   
+    sensorMagnetometer_readChip(BNO055_MAG, "MAG");
+}
+
+void sensorMagnetometer_readACC()
+{   
+    sensorMagnetometer_readChip(BNO055_ACC, "ACC");
+}
+
+void sensorMagnetometer_readGYRO()
+{   
+    sensorMagnetometer_readChip(BNO055_GYRO, "GYRO");
+}
+
+static void BNO055_readVector(uint8_t startReg, const char *name)
+{
+    uint8_t data[6] = {0};
+    HAL_StatusTypeDef info;
+
+    info = HAL_I2C_Master_Transmit(&I2C_BNO055_Handle, BNO055_ADDR << 1, &startReg, 1, 5000);
+    if (info != HAL_OK)
+    {
+        printf("%s Transmit FAILED, HAL status: %d, I2C error: 0x%lX\r\n", name, info, HAL_I2C_GetError(&I2C_BNO055_Handle));
+        return;
+    }
+
+    info = HAL_I2C_Master_Receive(&I2C_BNO055_Handle, BNO055_ADDR << 1, data, 6, 5000);
+    if (info != HAL_OK)
+    {
+        printf("%s Receive FAILED, HAL status: %d, I2C error: 0x%lX\r\n", name, info, HAL_I2C_GetError(&I2C_BNO055_Handle));
+        return;
+    }
+
+    int16_t x = (int16_t)((data[1] << 8) | data[0]);
+    int16_t y = (int16_t)((data[3] << 8) | data[2]);
+    int16_t z = (int16_t)((data[5] << 8) | data[4]);
+
+    printf("%s: X=%d, Y=%d, Z=%d\r\n", name, x, y, z);
+}
+
+void sensorMagnetometer_readACC_Vector()
+{
+    BNO055_readVector(BNO055_ACCX_LSB, "ACC");
+}
+
+void sensorMagnetometer_readMAG_Vector()
+{
+    BNO055_readVector(BNO055_MAGX_LSB, "MAG");
+}
+
+void sensorMagnetometer_readGYRO_Vector()
+{
+    BNO055_readVector(BNO055_GYRX_LSB, "GYRO");
 }

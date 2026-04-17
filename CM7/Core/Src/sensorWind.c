@@ -509,6 +509,7 @@ static void sensorWind_uart4Init(void)
 
 void sensorWind_handler(void *argument)
 {
+    vTaskSuspend(NULL);
     for (;;)
     {
         float angle = read_wind_angle_360(SENSOR_ADDRESS);
