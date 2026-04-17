@@ -1,7 +1,7 @@
 #include "main.h"
 #include "sensorMagnetometer.h"
 
-#define BNO055_ADDR  0x29  // default, COM3 high Try 0x28 if this doesn't work
+#define BNO055_ADDR  0x28  // default, COM3 high Try 0x28 if this doesn't work
 #define BNO055_WHO_AM_I 0x00  // chip ID register
 
 TaskHandle_t task_sensorMagnetometer;
@@ -93,7 +93,7 @@ void sensorMagnetometer_hardwareInit()
         (0x13U << 0);   // SCLL   = 19 : SCL low  period = 20  ticks = 5us
 
     I2C_BNO055_Handle.Init.AddressingMode =  I2C_ADDRESSINGMODE_7BIT;
-    I2C_BNO055_Handle.Init.OwnAddress1 = 0;
+    I2C_BNO055_Handle.Init.OwnAddress1 = 0x1;
     I2C_BNO055_Handle.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
     I2C_BNO055_Handle.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
     I2C_BNO055_Handle.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
