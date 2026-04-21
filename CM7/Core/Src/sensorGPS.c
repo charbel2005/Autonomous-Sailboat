@@ -1,12 +1,21 @@
 #include "main.h"
 #include "stm32h7xx_hal_i2c.h"
 #include "sensorGPS.h"
+#include "gps_parser.h"
+#include <stdint.h> // Need this for a struct. If we are low on memory feel free to remove.
 
 // #define M9N_ADDR 0x42  // default I2C address for the M9N GPS module, according to AI, never found it in the data sheet
 
 TaskHandle_t task_sensorGPS;
 UART_HandleTypeDef  UART7_Handler = {0};
 
+
+typedef struct{
+
+  double latitude;
+  double longitude;
+
+}
 /**
   * Initialize the hardware. CFG_COM1 and CFG_COM0 configuration pins
   */
