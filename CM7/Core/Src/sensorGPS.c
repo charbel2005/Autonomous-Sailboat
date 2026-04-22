@@ -59,7 +59,7 @@ void sensorGPS_hardwareInit() {
 
     uint32_t apb1_clk = HAL_RCC_GetPCLK1Freq();
     uint32_t sys_clk  = HAL_RCC_GetSysClockFreq();
-    printf("UART7 init complete on PA8(RX) / PA15(TX)\r\n");
+    printf("UART7 init complete on PF6(RX) / PF7(TX)\r\n");
     printf("  SYSCLK:  %lu Hz\r\n", sys_clk);
     printf("  APB1CLK: %lu Hz\r\n", apb1_clk);
     printf("  Expected UART7 baud: 9600\r\n"); // page 11 
