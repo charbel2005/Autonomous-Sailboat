@@ -3,25 +3,23 @@
 #include "sensorGPS.h"
 #include "gps_parser.h"
 #include <stdint.h> // Need this for a struct. If we are low on memory feel free to remove.
-
-// #define M9N_ADDR 0x42  // default I2C address for the M9N GPS module, according to AI, never found it in the data sheet
+#include <string.h> // 
 
 TaskHandle_t task_sensorGPS;
 UART_HandleTypeDef  UART7_Handler = {0};
 
+static uint8_t g_gps_raw_byte;
+static char g_nmea_buffer[128];
+static int g_index = 0; 
+GPS_Data_t myGPS; // The actual data storage for NMEA06
 
-typedef struct{
 
-  double latitude;
-  double longitude;
-
-}
 /**
   * Initialize the hardware. CFG_COM1 and CFG_COM0 configuration pins
   */
 void sensorGPS_hardwareInit() {
     // Will have to rewrite this part, we wrote code for the incorrect gps chip, we use m6, m6 uses UART
-    // M9N is capable of I2c
+    // M9N is capable of I2c but not m6
      /* PA8 — UART7 RX */
      // here is the sheet: http://content.u-blox.com/sites/default/files/products/documents/NEO-6_DataSheet_%28GPS.G6-HW-09005%29.pdf
     GPIO_InitTypeDef GPIO_InitStruct = {0};
@@ -103,6 +101,39 @@ void sensorGPS_hardwareInit() {
     //     Error_Handler();
     // }
 }
+void GPS_Parse_GGA(char* nmea_str, GPS_Data_t* gps_struct)
+{
+  // We have to check if its an actual GPGGA sentence
+  if (strstr(nmea_str, "$GPGGA") == NULL) 
+    return;
+
+}
+
+GPS_ProcessChar(uint8_t rx_byte)
+{
+  if(rx_byte == '\n')
+  {
+    g_nmea_buffer[g_index] = '\0';
+    GPS_Parse_GGA(g_nmea_buffer);
+    g_index = 0;
+  } else 
+  {
+    if (g_index < 127)
+    {
+      g_nmea_buffer[g_index++] = rx_byte;
+    }
+      
+  }
+}
+
+HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
+  if (huart->Instance == UART7) 
+  {
+    
+  }
+
+}
+
 
 /**
   * Handler for the task.
