@@ -23,6 +23,6 @@ typedef struct{
 void GPS_ProcessChar(uint8_t rx_byte);
 void GPS_Parse_GGA(char* nmea_str, GPS_Data_t* gps_struct); // (Global Positioning System Fix Data)
 // void GPS_Parse_GLL(char* nmea_str, GPS_Data_t* gps_struct); not sure if we need GLL
-void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart);
+//void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart); We will be doing interrupt stuff later
 
 #endif

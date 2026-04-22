@@ -137,17 +137,26 @@ void GPS_ProcessChar(uint8_t rx_byte)
   }
 }
 
-void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
-{
-  // 
-  if (huart->Instance == UART7) 
-  {
-    GPS_ProcessChar(g_gps_raw_byte);
-    HAL_UART_Receive_IT(huart, &g_gps_raw_byte, 1);
-  }
+// void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) // Moving away from interrupts for the moment
+// {
+//   // 
+//   if (huart->Instance == UART7) 
+//   {
+//     GPS_ProcessChar(g_gps_raw_byte);
+//     HAL_UART_Receive_IT(huart, &g_gps_raw_byte, 1);
+//   }
   
-}
+// }
 
+void GPS_Poll(void) // MOVE THIS TO THE MAIN LOOP EVENTUALLY?
+{
+    uint8_t byte;
+    // Blocks until 1 byte arrives (or timeout)
+    if (HAL_UART_Receive(&huart7, &byte, 1, 10) == HAL_OK)
+    {
+        GPS_ProcessChar(byte);
+    }
+}
 
 /**
   * Handler for the task.
