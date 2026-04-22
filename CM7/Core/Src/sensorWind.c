@@ -395,71 +395,12 @@ static float    read_wind_angle_360(uint8_t addr);
 static int      read_wind_dir_16(uint8_t addr);
 static const char* direction_name(int val);
 
-/* ------------------------------------------------------------------ */
-/* Hardware init                                                        */
-/* ------------------------------------------------------------------ */
+
+// Hardware init                                                       
 void sensorWind_hardwareInit(void)
 {
     sensorWind_uart4Init();
 }
-
-// static void sensorWind_uart4Init(void)
-// {
-//     // Note: __HAL_RCC_UART4_CLK_ENABLE() and __HAL_RCC_GPIOA_CLK_ENABLE()
-//     // are called in hardware_init() in main.c — no need to repeat here.
-
-//     /* PA0 — UART4 TX */
-//     GPIO_InitTypeDef GPIO_InitStruct = {0};
-//     GPIO_InitStruct.Pin       = GPIO_PIN_0;
-//     GPIO_InitStruct.Mode      = GPIO_MODE_AF_PP;
-//     GPIO_InitStruct.Pull      = GPIO_PULLUP;
-//     GPIO_InitStruct.Speed     = GPIO_SPEED_FREQ_LOW;
-//     GPIO_InitStruct.Alternate = GPIO_AF8_UART4;
-//     HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-
-//     /* PA1 — UART4 RX */
-//     GPIO_InitStruct.Pin = GPIO_PIN_1;
-//     HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-
-//     /* UART4 peripheral */
-//     UART4_Handler.Instance        = UART4;
-//     UART4_Handler.Init.BaudRate   = 9600;
-//     UART4_Handler.Init.WordLength = UART_WORDLENGTH_8B;
-//     UART4_Handler.Init.StopBits   = UART_STOPBITS_1;
-//     UART4_Handler.Init.Parity     = UART_PARITY_NONE;
-//     UART4_Handler.Init.Mode       = UART_MODE_TX_RX;
-
-//     if (HAL_UART_Init(&UART4_Handler) != HAL_OK)
-//     {
-//         Error_Handler();
-//     }
-
-//     printf("UART4 init complete\r\n");
-// }
-
-// /* ------------------------------------------------------------------ */
-// /* Task handler                                                         */
-// /* ------------------------------------------------------------------ */
-// void sensorWind_handler(void *argument)
-// {
-//     for (;;)
-//     {
-//         float angle = read_wind_angle_360(SENSOR_ADDRESS);
-
-//         if (angle < 0.0f)
-//         {
-//             printf("Wind sensor: timeout or CRC error\r\n");
-//         }
-//         else
-//         {
-//             uint16_t degrees = (uint16_t)angle;
-//             printf("Wind angle: %.1f deg\r\n", angle);
-//             servoSail_setAngle(degrees);
-//         }
-
-//         vTaskDelay(pdMS_TO_TICKS(1000));
-//     }
-// }
 
 static void sensorWind_uart4Init(void)
 {
@@ -593,10 +534,8 @@ void sensorWind_handler(void *argument)
 //     }
 // }
 
-/* ------------------------------------------------------------------ */
-/* CRC16 Modbus — single consistent implementation                      */
-/* ------------------------------------------------------------------ */
 
+// CRC16 Modbus — single consistent implementation                      
 // Standard Modbus CRC16, low byte first (little-endian)
 static uint16_t crc16(const uint8_t *buf, int len)
 {

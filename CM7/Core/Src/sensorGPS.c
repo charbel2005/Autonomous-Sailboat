@@ -20,19 +20,19 @@ GPS_Data_t myGPS; // The actual data storage for NMEA06
 void sensorGPS_hardwareInit() {
     // Will have to rewrite this part, we wrote code for the incorrect gps chip, we use m6, m6 uses UART
     // M9N is capable of I2c but not m6
-     /* PA8 — UART7 RX */
+     /* PF6 — UART7 RX */
      // here is the sheet: http://content.u-blox.com/sites/default/files/products/documents/NEO-6_DataSheet_%28GPS.G6-HW-09005%29.pdf
     GPIO_InitTypeDef GPIO_InitStruct = {0};
-    GPIO_InitStruct.Pin       = GPIO_PIN_8;
+    GPIO_InitStruct.Pin       = GPIO_PIN_6;
     GPIO_InitStruct.Mode      = GPIO_MODE_AF_PP;
     GPIO_InitStruct.Pull      = GPIO_PULLUP;
     GPIO_InitStruct.Speed     = GPIO_SPEED_FREQ_LOW;
-    GPIO_InitStruct.Alternate = GPIO_AF11_UART7;
-    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+    GPIO_InitStruct.Alternate = GPIO_AF7_UART7;
+    HAL_GPIO_Init(GPIOF, &GPIO_InitStruct);
 
-    /* PA15 - UART7 TX */
-    GPIO_InitStruct.Pin = GPIO_PIN_15;
-    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+    /* PF7 - UART7 TX */
+    GPIO_InitStruct.Pin = GPIO_PIN_7;
+    HAL_GPIO_Init(GPIOF, &GPIO_InitStruct);
 
      /* Set UART7 kernel clock explicitly */
     RCC_PeriphCLKInitTypeDef PeriphClkInit = {0};
