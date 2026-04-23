@@ -10,10 +10,7 @@ typedef struct{//$GPGLL,4717.11634,N,00833.91297,E,124923.00,A,A*6E is an exampl
   double longitude;
   float altitude;
   uint8_t satellites;
-  uint8_t fix_valid; // There are 3 types
-  uint8_t hours;
-  uint8_t minutes;
-  uint8_t seconds;
+  uint8_t fix_valid;
 } GPS_Data_t;
 
 extern GPS_Data_t myGPS;
