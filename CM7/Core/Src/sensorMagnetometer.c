@@ -66,6 +66,8 @@ void sensorMagnetometer_readMAG_Vector();
 void sensorMagnetometer_readACC_Vector();
 void sensorMagnetometer_readVectorDynamic(uint8_t startReg, uint8_t bytes, const char *name);
 uint8_t checkCalibration();
+void BNO055_saveCalibrationOffsets();
+void BNO055_loadCalibrationOffsets();
 
 #pragma pack(1) // ensure no padding between fields
 typedef struct {
@@ -161,7 +163,7 @@ void sensorMagnetometer_hardwareInit()
 
     sensorMagnetometer_readWhoAmI();
     sensorMagnetometer_readSelfTest();
-    currentMode = BNO055_OPR_MODE_NDOF; // USER: only change this line to set mode
+    currentMode = BNO055_OPR_MODE_MAGONLY; // USER: only change this line to set mode
 
     if (!(currentMode >= BNO055_OPR_MODE_IMUPLUS && currentMode <= BNO055_OPR_MODE_NDOF))
     {
@@ -184,7 +186,7 @@ void sensorMagnetometer_hardwareInit()
 
         printf("Move sensor in figure-8 for mag, hold 6 orientations for acc, keep still for gyro\r\n");
 
-        while (BNO055_checkCalibration() == 0)
+        while (checkCalibration() == 0)
         {
             HAL_Delay(2000);
         }
@@ -216,8 +218,8 @@ void sensorMagnetometer_handler(void *argument)
     for(;;)
     {
         // sensorMagnetometer_readACC_Vector();
-        // sensorMagnetometer_readMAG_Vector();
-        sensorMagnetometer_readGYRO_Vector();
+        sensorMagnetometer_readMAG_Vector();
+        // sensorMagnetometer_readGYRO_Vector();
         vTaskDelay(pdMS_TO_TICKS(1000)); // Delay for demonstration purposes
     }
 }
@@ -376,7 +378,7 @@ uint8_t checkCalibration() {
 }
 
 // Save the 18 offset bytes out of the BNO055 into savedOffsets[]
-static void BNO055_saveCalibrationOffsets()
+void BNO055_saveCalibrationOffsets()
 {
     HAL_StatusTypeDef info;
 
@@ -402,7 +404,7 @@ static void BNO055_saveCalibrationOffsets()
 }
 
 // Write savedOffsets[] back into the BNO055 to skip motion calibration on next boot
-static void BNO055_loadCalibrationOffsets()
+void BNO055_loadCalibrationOffsets()
 {
     HAL_StatusTypeDef info;
 
