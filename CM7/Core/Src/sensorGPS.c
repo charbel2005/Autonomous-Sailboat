@@ -4,6 +4,8 @@
 #include "gps_parser.h"
 #include <stdint.h> // Need this for a struct. If we are low on memory feel free to remove.
 #include <string.h>
+#include <stdlib.h>
+#include <stdio.h>
 
 TaskHandle_t task_sensorGPS;
 UART_HandleTypeDef  UART7_Handler = {0};
@@ -35,9 +37,17 @@ void sensorGPS_hardwareInit() {
     HAL_GPIO_Init(GPIOF, &GPIO_InitStruct);
 
      /* Set UART7 kernel clock explicitly */
+    // RCC_PeriphCLKInitTypeDef PeriphClkInit = {0};
+    // PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_UART7;
+    // PeriphClkInit.Usart234578ClockSelection  = RCC_UART7CLKSOURCE_D2PCLK1;
+    // if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
+    // {
+    //     Error_Handler();
+    // }
+
     RCC_PeriphCLKInitTypeDef PeriphClkInit = {0};
-    PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_UART7;
-    PeriphClkInit.Usart16ClockSelection  = RCC_UART7CLKSOURCE_D2PCLK1;
+    PeriphClkInit.PeriphClockSelection       = RCC_PERIPHCLK_USART234578;
+    PeriphClkInit.Usart234578ClockSelection  = RCC_USART234578CLKSOURCE_D2PCLK1;
     if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
     {
         Error_Handler();
@@ -69,7 +79,8 @@ void sensorGPS_hardwareInit() {
 void GPS_Parse_GGA(char* nmea_str, GPS_Data_t* gps_struct)
 {
 
-  char *gps_fields[15];
+  // gps fields set to null values
+  char *gps_fields[15] = {0};
 
   // parse string by commas
   char *token = strtok(nmea_str, ",");
@@ -79,7 +90,23 @@ void GPS_Parse_GGA(char* nmea_str, GPS_Data_t* gps_struct)
     gps_fields[i] = token;
     token = strtok(NULL, ",");  // NULL tells strtok to continue from where it left off
   }
+
+  // Print every field so we can see what strtok produced
+  for (int i = 0; i < 10; i++) {
+      printf("field[%d] = [%s]\r\n", i, gps_fields[i] ? gps_fields[i] : "NULL");
+  }
+
+  //if (gps_fields[6] == NULL) return; // malformed
+  if (gps_fields[6] == NULL) { printf("BAILED: field 6 null\r\n"); return; }
+  if (atoi(gps_fields[6]) == 0) { printf("BAILED: no fix, field6=[%s]\r\n", gps_fields[6]); return; }
   
+  printf("field[6] hex: 0x%02X 0x%02X\r\n", 
+    (uint8_t)gps_fields[6][0], 
+    (uint8_t)gps_fields[6][1]);
+
+  // Add this:
+  printf("PAST FIX CHECK: fix=%d\r\n", atoi(gps_fields[6]));
+
   // EX lat or long: 4007.038 (DDDMM.MMMM)
   // 40 degrees and 07.038 minutes
 
@@ -87,6 +114,8 @@ void GPS_Parse_GGA(char* nmea_str, GPS_Data_t* gps_struct)
   // atof converts ASCII string to float
   float lat_raw = atof(gps_fields[2]);
   float long_raw = atof(gps_fields[4]);
+
+  printf("lat_raw=%.5f  long_raw=%.5f\r\n", lat_raw, long_raw);
 
   // get degree in int
   int lat_deg = (int) (lat_raw / 100);
@@ -112,7 +141,7 @@ void GPS_Parse_GGA(char* nmea_str, GPS_Data_t* gps_struct)
   gps_struct -> satellites = atof(gps_fields[7]);
   gps_struct -> fix_valid = atof(gps_fields[6]); // 1 if there is gps fix
 
-  printf("FIX:%d  SATS:%d  LAT:%.6f  LON:%.6f  ALT:%.1f\n",
+  printf("FIX:%d  SATS:%d  LAT:%.6lf  LON:%.6lf  ALT:%.1f\r\n",
     gps_struct->fix_valid,
     gps_struct->satellites,
     gps_struct->latitude,
@@ -139,8 +168,9 @@ void GPS_ProcessChar(uint8_t rx_byte)
     g_nmea_buffer[g_index] = '\0';
 
     // parse if valid
-    if (strstr(g_nmea_buffer, "$GPGGA") != NULL || strstr(g_nmea_buffer, "$GNGGA") != NULL) 
+    if (strstr(g_nmea_buffer, "GGA") != NULL) 
     {
+      printf("RAW: [%s]\r\n", g_nmea_buffer);  // print exactly what we're about to parse
       GPS_Parse_GGA(g_nmea_buffer, &myGPS); // (Global Positioning System Fix Data) 
     }
 
@@ -169,18 +199,29 @@ void GPS_ProcessChar(uint8_t rx_byte)
 void GPS_Poll(void) // MOVE THIS TO THE MAIN LOOP EVENTUALLY?
 {
     uint8_t byte;
-    // Blocks until 1 byte arrives (or timeout)
-    if (HAL_UART_Receive(&UART7_Handler, &byte, 1, 10) == HAL_OK)
+    //Blocks until 1 byte arrives (or timeout)
+    if (HAL_UART_Receive(&UART7_Handler, &byte, 1, 100) == HAL_OK)
     {
+      //printf("%c", byte);
       GPS_ProcessChar(byte);
     }
+
+    // if (HAL_UART_Receive(&UART7_Handler, &byte, 1, 5000) == HAL_OK)
+    // {
+    //     printf("GOT BYTE: 0x%02X  '%c'\r\n", byte, byte);
+    // }
+    // else
+    // {
+    //     printf("5 second timeout — nothing received\r\n");
+    // }
 }
 
 /**
   * Handler for the task.
   */
 void sensorGPS_handler(void *argument) {
-    for(;;) {
+  vTaskDelay(pdMS_TO_TICKS(5000));  // give the module 2 seconds to boot  
+  for(;;) {
         //vTaskDelay(pdMS_TO_TICKS(1000)); // Delay for demonstration purposes
         GPS_Poll();
     }

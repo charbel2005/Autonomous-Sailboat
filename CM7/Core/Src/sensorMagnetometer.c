@@ -226,11 +226,17 @@ void handler(void *argument)
 {
     for(;;)
     {
+<<<<<<< HEAD
         // readACC_Vector();
         // readMAG_Vector();
         // readGYRO_Vector();
         fillStruct();
         printIMU();
+=======
+        // sensorMagnetometer_readACC_Vector();
+        // sensorMagnetometer_readMAG_Vector();
+        //sensorMagnetometer_readGYRO_Vector();
+>>>>>>> ade8274 (print statements to debug gps)
         vTaskDelay(pdMS_TO_TICKS(1000)); // Delay for demonstration purposes
     }
 }
@@ -250,7 +256,7 @@ static void readChip(uint8_t regADDR, const char *name)
                             I2C_MEMADD_SIZE_8BIT, &receiveBuff, 1, 5000);
 
     if (info != HAL_OK) {
-        printf("%s FAILED, HAL status: %d, I2C error: 0x%lX\r\n", name, info, HAL_I2C_GetError(&I2C_BNO055_Handle));
+        //printf("%s FAILED, HAL status: %d, I2C error: 0x%lX\r\n", name, info, HAL_I2C_GetError(&I2C_BNO055_Handle));
         HAL_I2C_DeInit(&I2C_BNO055_Handle);
         HAL_I2C_Init(&I2C_BNO055_Handle);
         return;
@@ -309,7 +315,7 @@ static void BNO055_readVector(uint8_t startReg, const char *name, int16_t *xData
         6,                      // read 6 bytes (LSB+MSB for X, Y, Z)
         5000                    // timeout ms
     )) != HAL_OK) {
-        printf("%s Transmit FAILED, HAL status: %d, I2C error: 0x%lX\r\n", name, info, HAL_I2C_GetError(&I2C_BNO055_Handle));
+        //printf("%s Transmit FAILED, HAL status: %d, I2C error: 0x%lX\r\n", name, info, HAL_I2C_GetError(&I2C_BNO055_Handle));
     }
 
     int16_t x = (int16_t)((data[1] << 8) | data[0]);
@@ -348,8 +354,12 @@ void readVectorDynamic(uint8_t startReg, uint8_t bytes, const char *name, uint8_
         bytes,                   // number of bytes to read
         5000                    // timeout ms
     )) != HAL_OK) {
+<<<<<<< HEAD
         printf("%s Transmit FAILED, HAL status: %d, I2C error: 0x%lX\r\n", name, info, HAL_I2C_GetError(&I2C_BNO055_Handle));
         return;
+=======
+        //printf("%s Transmit FAILED, HAL status: %d, I2C error: 0x%lX\r\n", name, info, HAL_I2C_GetError(&I2C_BNO055_Handle));
+>>>>>>> ade8274 (print statements to debug gps)
     }
 
     printf("%s: ", name);
