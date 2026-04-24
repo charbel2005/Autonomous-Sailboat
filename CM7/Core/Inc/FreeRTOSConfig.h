@@ -57,6 +57,7 @@ void xPortSysTickHandler(void);
 #endif /* CMSIS_device_header */
 
 #define configENABLE_FPU                         0
+#define configUSE_TASK_FPU_SUPPORT               1
 #define configENABLE_MPU                         0
 
 #define configUSE_PREEMPTION                     1

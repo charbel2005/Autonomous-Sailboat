@@ -2,6 +2,7 @@
 #include "stm32h7xx_hal_i2c.h"
 #include <stdint.h>
 #include "sensorMagnetometer.h"
+#include <math.h>
 
 #define BNO055_ADDR  0x28  // ADR pin LOW (default Adafruit breakout). Use 0x29 if ADR pin is HIGH.
 #define BNO055_WHO_AM_I 0x00  // chip ID register
@@ -28,6 +29,7 @@
 #define BNO055_GYRZ_MSB 0x19  // chip ID register
 #define BNO055_EUL_HEADING_LSB 0x1A  // chip ID register
 #define BNO055_EUL_HEADING_MSB 0x1B  // chip ID register
+#define BNO055_Quaternion_LSB 0x20
 #define BNO055_ST_RESULT 0x36 // Self-test register
 #define BNO055_SYS_STAT 0x39 // System status register
 #define BNO055_SYS_ERROR 0x3A // System error register
@@ -54,20 +56,26 @@
 #define TRUE 0x01
 #define FALSE 0x00
 
-void sensorMagnetometer_setOperationMode(uint8_t mode);
-static void sensorMagnetometer_readChip(uint8_t regADDR, const char *name);
-void sensorMagnetometer_readWhoAmI();
-void sensorMagnetometer_readMAG();
-void sensorMagnetometer_readACC();
-void sensorMagnetometer_readGYRO();
-void sensorMagnetometer_readSelfTest();
-void sensorMagnetometer_readGYRO_Vector();
-void sensorMagnetometer_readMAG_Vector();
-void sensorMagnetometer_readACC_Vector();
-void sensorMagnetometer_readVectorDynamic(uint8_t startReg, uint8_t bytes, const char *name);
+#ifndef M_PI
+#define M_PI 3.14159265358979323846f
+#endif
+
+void setOperationMode(uint8_t mode);
+static void readChip(uint8_t regADDR, const char *name);
+void readWhoAmI();
+void readMAG();
+void readACC();
+void readGYRO();
+void readSelfTest();
+void readGYRO_Vector();
+void readMAG_Vector();
+void readACC_Vector();
+void readVectorDynamic(uint8_t startReg, uint8_t bytes, const char *name, uint8_t *vectorData);
 uint8_t checkCalibration();
-void BNO055_saveCalibrationOffsets();
-void BNO055_loadCalibrationOffsets();
+void saveCalibrationData();
+void loadCalibrationData();
+void fillStruct();
+void printIMU();
 
 #pragma pack(1) // ensure no padding between fields
 typedef struct {
@@ -76,8 +84,8 @@ typedef struct {
     int16_t gyro_x, gyro_y, gyro_z;
     int16_t mag_x,  mag_y,  mag_z;
 
-    // Fusion Mode Values
-    int16_t heading, pitch, roll;
+    //Quaternion Fusion Mode Values
+    int16_t w, x, y, z;
 
     // Claude said to have ths for when we transfer between cores
     uint32_t update_count;
@@ -161,47 +169,48 @@ void sensorMagnetometer_hardwareInit()
     // can then leave the peripheral in a stuck state (error 0x20).
     HAL_Delay(700);
 
-    sensorMagnetometer_readWhoAmI();
-    sensorMagnetometer_readSelfTest();
+    readWhoAmI();
+    readSelfTest();
     currentMode = BNO055_OPR_MODE_MAGONLY; // USER: only change this line to set mode
 
     if (!(currentMode >= BNO055_OPR_MODE_IMUPLUS && currentMode <= BNO055_OPR_MODE_NDOF))
     {
         // Non-fusion mode — just set it, no calibration needed
-        sensorMagnetometer_setOperationMode(currentMode);
+        setOperationMode(currentMode);
     }
     else if (isCalibrated)
     {
         // Already calibrated from a previous boot — restore offsets then go to fusion mode
         // loadCalibrationOffsets internally switches to CONFIG_MODE to write safely
-        BNO055_loadCalibrationOffsets();
-        sensorMagnetometer_setOperationMode(currentMode);
+        loadCalibrationData();
+        setOperationMode(currentMode);
     }
     else
     {
         // First boot in fusion mode — must set fusion mode FIRST so the calibration
         // algorithm runs, then poll until all three sensors reach 3/3
-        sensorMagnetometer_setOperationMode(currentMode);
+        setOperationMode(currentMode);
         HAL_Delay(20);
 
         printf("Move sensor in figure-8 for mag, hold 6 orientations for acc, keep still for gyro\r\n");
-
-        while (checkCalibration() == 0)
+        int count = 0;
+        while (checkCalibration() == 0 || count < 30)
         {
+            count++;
             HAL_Delay(2000);
         }
 
         // saveCalibrationOffsets switches to CONFIG_MODE internally to read offsets
-        BNO055_saveCalibrationOffsets();
+        saveCalibrationData();
         isCalibrated = TRUE;
         printf("BNO055 fully calibrated\r\n");
 
         // Restore fusion mode (save left chip in CONFIG_MODE)
-        sensorMagnetometer_setOperationMode(currentMode);
+        setOperationMode(currentMode);
     }
 }
 
-void sensorMagnetometer_setOperationMode(uint8_t mode)
+void setOperationMode(uint8_t mode)
 {
     HAL_I2C_Mem_Write(&I2C_BNO055_Handle, BNO055_ADDR << 1, BNO055_OPR_MODE, I2C_MEMADD_SIZE_8BIT, &mode, 1, 1000);
     HAL_Delay(10); // small delay to allow mode switch to take effect
@@ -213,22 +222,24 @@ void sensorMagnetometer_setOperationMode(uint8_t mode)
 /**
   * Handler for the task.
   */
-void sensorMagnetometer_handler(void *argument)
+void handler(void *argument)
 {
     for(;;)
     {
-        // sensorMagnetometer_readACC_Vector();
-        sensorMagnetometer_readMAG_Vector();
-        // sensorMagnetometer_readGYRO_Vector();
+        // readACC_Vector();
+        // readMAG_Vector();
+        // readGYRO_Vector();
+        fillStruct();
+        printIMU();
         vTaskDelay(pdMS_TO_TICKS(1000)); // Delay for demonstration purposes
     }
 }
 
-void sensorMagnetometer_readWhoAmI() {
-    sensorMagnetometer_readChip(BNO055_WHO_AM_I, "Who Am I");
+void readWhoAmI() {
+    readChip(BNO055_WHO_AM_I, "Who Am I");
 }
 
-static void sensorMagnetometer_readChip(uint8_t regADDR, const char *name)
+static void readChip(uint8_t regADDR, const char *name)
 {   
     uint8_t receiveBuff = 0;
     uint8_t expected = 0;
@@ -264,24 +275,24 @@ static void sensorMagnetometer_readChip(uint8_t regADDR, const char *name)
     }
 }
 
-void sensorMagnetometer_readMAG()
+void readMAG()
 {   
-    sensorMagnetometer_readChip(BNO055_MAG, "MAG");
+    readChip(BNO055_MAG, "MAG");
 }
 
-void sensorMagnetometer_readACC()
+void readACC()
 {   
-    sensorMagnetometer_readChip(BNO055_ACC, "ACC");
+    readChip(BNO055_ACC, "ACC");
 }
 
-void sensorMagnetometer_readGYRO()
+void readGYRO()
 {   
-    sensorMagnetometer_readChip(BNO055_GYRO, "GYRO");
+    readChip(BNO055_GYRO, "GYRO");
 }
 
-void sensorMagnetometer_readSelfTest()
+void readSelfTest()
 {   
-    sensorMagnetometer_readChip(BNO055_ST_RESULT, "Self-Test Result");
+    readChip(BNO055_ST_RESULT, "Self-Test Result");
 }
 
 static void BNO055_readVector(uint8_t startReg, const char *name, int16_t *xData, int16_t *yData, int16_t *zData)
@@ -309,43 +320,93 @@ static void BNO055_readVector(uint8_t startReg, const char *name, int16_t *xData
     printf("%s: X=%d, Y=%d, Z=%d\r\n", name, x, y, z);
 }
 
-void sensorMagnetometer_readACC_Vector()
+void readACC_Vector()
 {
     BNO055_readVector(BNO055_ACCX_LSB, "ACC", &IMU.acc_x, &IMU.acc_y, &IMU.acc_z);
 }
 
-void sensorMagnetometer_readMAG_Vector()
+void readMAG_Vector()
 {
     BNO055_readVector(BNO055_MAGX_LSB, "MAG",  &IMU.mag_x, &IMU.mag_y, &IMU.mag_z);
 }
 
-void sensorMagnetometer_readGYRO_Vector()
+void readGYRO_Vector()
 {
     BNO055_readVector(BNO055_GYRX_LSB, "GYRO",  &IMU.gyro_x, &IMU.gyro_y, &IMU.gyro_z);
 }
 
-void sensorMagnetometer_readVectorDynamic(uint8_t startReg, uint8_t bytes, const char *name)
+void readVectorDynamic(uint8_t startReg, uint8_t bytes, const char *name, uint8_t *vectorData)
 {
     HAL_StatusTypeDef info;
-    uint8_t buffer[256] = {0};
 
     if ((info = HAL_I2C_Mem_Read(
         &I2C_BNO055_Handle,
         BNO055_ADDR << 1,       // 7-bit addr shifted for HAL
         startReg,               // register to start reading from
         I2C_MEMADD_SIZE_8BIT,   // BNO055 uses 8-bit register addresses
-        buffer,                 // output buffer
+        vectorData,                 // output buffer
         bytes,                   // number of bytes to read
         5000                    // timeout ms
     )) != HAL_OK) {
         printf("%s Transmit FAILED, HAL status: %d, I2C error: 0x%lX\r\n", name, info, HAL_I2C_GetError(&I2C_BNO055_Handle));
+        return;
     }
 
     printf("%s: ", name);
     for (uint8_t i = 0; i < bytes; i++) {
-        printf("%02X ", buffer[i]);
+        printf("%02X ", vectorData[i]);
     }
     printf("\r\n");
+}
+
+void readQuaternion() {
+    uint8_t quat[8] = {0};
+    readVectorDynamic(BNO055_Quaternion_LSB, 8, "Quaternion Data", quat);
+    IMU.w = (quat[1] << 8) | quat[0];
+    IMU.x = (quat[3] << 8) | quat[2];
+    IMU.y = (quat[5] << 8) | quat[4];
+    IMU.z = (quat[7] << 8) | quat[6];
+}
+
+void fillStruct() {
+    readACC_Vector();
+    readMAG_Vector();
+    readGYRO_Vector();
+    readQuaternion();
+}
+
+void printIMU()
+{
+    // Scale quaternion components to unit range [-1, 1]
+    float w = IMU.w / 16384.0f;
+    float x = IMU.x / 16384.0f;
+    float y = IMU.y / 16384.0f;
+    float z = IMU.z / 16384.0f;
+
+    // Convert quaternion to Euler angles (radians -> degrees)
+    float roll  = atan2f(2.0f * (w*x + y*z), 1.0f - 2.0f * (x*x + y*y)) * (180.0f / M_PI);
+    float pitch = asinf (2.0f * (w*y - z*x))                              * (180.0f / M_PI);
+    float yaw   = atan2f(2.0f * (w*z + x*y), 1.0f - 2.0f * (y*y + z*z)) * (180.0f / M_PI);
+
+    // Normalize yaw to 0-360 for compass heading
+    if (yaw < 0) yaw += 360.0f;
+
+    printf("\r\n========== IMU DATA ==========\r\n");
+
+    // Raw vectors
+    printf("Accel  (raw): X=%6d  Y=%6d  Z=%6d\r\n", IMU.acc_x,  IMU.acc_y,  IMU.acc_z);
+    printf("Gyro   (raw): X=%6d  Y=%6d  Z=%6d\r\n", IMU.gyro_x, IMU.gyro_y, IMU.gyro_z);
+    printf("Mag    (raw): X=%6d  Y=%6d  Z=%6d\r\n", IMU.mag_x,  IMU.mag_y,  IMU.mag_z);
+
+    // Quaternion — raw counts and scaled
+    printf("Quat   (raw): W=%6d  X=%6d  Y=%6d  Z=%6d\r\n", IMU.w, IMU.x, IMU.y, IMU.z);
+    printf("Quat (scaled): W=%7.4f  X=%7.4f  Y=%7.4f  Z=%7.4f\r\n", w, x, y, z);
+
+    // Euler angles derived from quaternion
+    printf("Euler:  Roll=%7.2f  Pitch=%7.2f  Yaw=%7.2f (deg)\r\n", roll, pitch, yaw);
+    printf("Heading: %.2f deg\r\n", yaw);
+
+    printf("==============================\r\n");
 }
 
 uint8_t checkCalibration() {
@@ -378,12 +439,12 @@ uint8_t checkCalibration() {
 }
 
 // Save the 18 offset bytes out of the BNO055 into savedOffsets[]
-void BNO055_saveCalibrationOffsets()
+void saveCalibrationData()
 {
     HAL_StatusTypeDef info;
 
     // Must be in CONFIGMODE to read offsets reliably
-    sensorMagnetometer_setOperationMode(BNO055_OPR_MODE_CONFIG);
+    setOperationMode(BNO055_OPR_MODE_CONFIG);
     HAL_Delay(20);
 
     if ((info = HAL_I2C_Mem_Read(
@@ -404,12 +465,12 @@ void BNO055_saveCalibrationOffsets()
 }
 
 // Write savedOffsets[] back into the BNO055 to skip motion calibration on next boot
-void BNO055_loadCalibrationOffsets()
+void loadCalibrationData()
 {
     HAL_StatusTypeDef info;
 
     // Must be in CONFIGMODE to write offsets
-    sensorMagnetometer_setOperationMode(BNO055_OPR_MODE_CONFIG);
+    setOperationMode(BNO055_OPR_MODE_CONFIG);
     HAL_Delay(20);
 
     if ((info = HAL_I2C_Mem_Write(

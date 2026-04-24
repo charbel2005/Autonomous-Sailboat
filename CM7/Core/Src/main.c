@@ -78,7 +78,7 @@ int main(void)
     while((__HAL_RCC_GET_FLAG(RCC_FLAG_D2CKRDY) != RESET) && (timeout-- > 0));
     if ( timeout < 0 ) { Error_Handler(); }
   #endif
-
+  
   hardware_init();
   rtos_init();
   vTaskStartScheduler();
@@ -210,6 +210,9 @@ void hardware_init(void)
   {
     Error_Handler();
   }
+
+  // Should already be in your STM32H7 HAL init but verify:
+  SCB->CPACR |= ((3UL << 10*2) | (3UL << 11*2));  // enable FPU
 
   /* USER CODE BEGIN SysInit */
   button_hardwareInit();
