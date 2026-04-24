@@ -60,6 +60,10 @@
 #define M_PI 3.14159265358979323846f
 #endif
 
+// Helper macro to split a float into printable integer parts
+#define FLOAT_INT(f)  ((int)(f))
+#define FLOAT_FRAC(f) ((int)(fabsf((f) - (int)(f)) * 10000))
+
 void setOperationMode(uint8_t mode);
 static void readChip(uint8_t regADDR, const char *name);
 void readWhoAmI();
@@ -96,9 +100,13 @@ IMU_Data IMU = {0};
 TaskHandle_t task_sensorMagnetometer;
 I2C_HandleTypeDef I2C_BNO055_Handle;
 uint8_t currentMode;
-static uint8_t  isCalibrated = FALSE;
-static uint8_t  savedOffsets[CALIB_OFFSET_SIZE] = {0};
-
+static uint8_t  isCalibrated = TRUE;
+static uint8_t savedOffsets[CALIB_OFFSET_SIZE] = {
+    0xDD, 0xFF, 0xCC, 0xFF, 0xDD, 0xFF,   // accel X, Y, Z
+    0xE2, 0xFF, 0x01, 0x00, 0xEF, 0xFD,   // mag   X, Y, Z
+    0xFE, 0xFF, 0x01, 0x00, 0x00, 0x00,   // gyro  X, Y, Z
+    0xE8, 0x03, 0xE5, 0x01                // accel radius, mag radius
+};
 /**
   * Initialize the hardware.
   */
@@ -171,30 +179,43 @@ void sensorMagnetometer_hardwareInit()
 
     readWhoAmI();
     readSelfTest();
-    currentMode = BNO055_OPR_MODE_MAGONLY; // USER: only change this line to set mode
+    currentMode = BNO055_OPR_MODE_NDOF; // USER: only change this line to set mode
 
     if (!(currentMode >= BNO055_OPR_MODE_IMUPLUS && currentMode <= BNO055_OPR_MODE_NDOF))
     {
         // Non-fusion mode — just set it, no calibration needed
         setOperationMode(currentMode);
     }
-    else if (isCalibrated)
-    {
-        // Already calibrated from a previous boot — restore offsets then go to fusion mode
-        // loadCalibrationOffsets internally switches to CONFIG_MODE to write safely
+    if (isCalibrated) {
+        // Step 1: Must be in CONFIG mode to write offsets (chip powers on here anyway)
+        setOperationMode(BNO055_OPR_MODE_CONFIG);
+
+        // Step 2: Write saved offsets — gives fusion algorithm a head start
         loadCalibrationData();
-        setOperationMode(currentMode);
+
+        // Step 3: Enter fusion mode — algorithm starts running and will
+        setOperationMode(BNO055_OPR_MODE_NDOF);
+
+        // Step 4: Still poll CALIB_STAT — but with good offsets loaded
+        // this should reach 3/3/3 in seconds, not minutes
+        printf("Offsets loaded — waiting for fusion algorithm to confirm calibration...\r\n");
+        while (checkCalibration(1) == 0)
+        {
+            HAL_Delay(500);
+        }
+        printf("Calibration confirmed\r\n");
     }
     else
     {
         // First boot in fusion mode — must set fusion mode FIRST so the calibration
         // algorithm runs, then poll until all three sensors reach 3/3
+
         setOperationMode(currentMode);
         HAL_Delay(20);
 
         printf("Move sensor in figure-8 for mag, hold 6 orientations for acc, keep still for gyro\r\n");
         int count = 0;
-        while (checkCalibration() == 0 || count < 30)
+        while (checkCalibration(0) == 0 && count < 90)
         {
             count++;
             HAL_Delay(2000);
@@ -202,6 +223,7 @@ void sensorMagnetometer_hardwareInit()
 
         // saveCalibrationOffsets switches to CONFIG_MODE internally to read offsets
         saveCalibrationData();
+        HAL_Delay(10000);
         isCalibrated = TRUE;
         printf("BNO055 fully calibrated\r\n");
 
@@ -213,7 +235,7 @@ void sensorMagnetometer_hardwareInit()
 void setOperationMode(uint8_t mode)
 {
     HAL_I2C_Mem_Write(&I2C_BNO055_Handle, BNO055_ADDR << 1, BNO055_OPR_MODE, I2C_MEMADD_SIZE_8BIT, &mode, 1, 1000);
-    HAL_Delay(10); // small delay to allow mode switch to take effect
+    HAL_Delay(25); // small delay to allow mode switch to take effect
     currentMode = mode;
 }
 
@@ -222,7 +244,7 @@ void setOperationMode(uint8_t mode)
 /**
   * Handler for the task.
   */
-void handler(void *argument)
+void sensorMagnetometer_handler(void *argument)
 {
     for(;;)
     {
@@ -230,8 +252,8 @@ void handler(void *argument)
         // readMAG_Vector();
         // readGYRO_Vector();
         fillStruct();
-        printIMU();
         vTaskDelay(pdMS_TO_TICKS(1000)); // Delay for demonstration purposes
+        printIMU();
     }
 }
 
@@ -317,7 +339,7 @@ static void BNO055_readVector(uint8_t startReg, const char *name, int16_t *xData
     int16_t z = (int16_t)((data[5] << 8) | data[4]);
     *xData = x; *yData = y; *zData = z;
 
-    printf("%s: X=%d, Y=%d, Z=%d\r\n", name, x, y, z);
+//    printf("%s: X=%d, Y=%d, Z=%d\r\n", name, x, y, z);
 }
 
 void readACC_Vector()
@@ -352,9 +374,9 @@ void readVectorDynamic(uint8_t startReg, uint8_t bytes, const char *name, uint8_
         return;
     }
 
-    printf("%s: ", name);
+//    printf("%s: ", name);
     for (uint8_t i = 0; i < bytes; i++) {
-        printf("%02X ", vectorData[i]);
+        // printf("%02X ", vectorData[i]);
     }
     printf("\r\n");
 }
@@ -398,18 +420,26 @@ void printIMU()
     printf("Gyro   (raw): X=%6d  Y=%6d  Z=%6d\r\n", IMU.gyro_x, IMU.gyro_y, IMU.gyro_z);
     printf("Mag    (raw): X=%6d  Y=%6d  Z=%6d\r\n", IMU.mag_x,  IMU.mag_y,  IMU.mag_z);
 
-    // Quaternion — raw counts and scaled
-    printf("Quat   (raw): W=%6d  X=%6d  Y=%6d  Z=%6d\r\n", IMU.w, IMU.x, IMU.y, IMU.z);
-    printf("Quat (scaled): W=%7.4f  X=%7.4f  Y=%7.4f  Z=%7.4f\r\n", w, x, y, z);
+    // Instead of: printf("Quat (scaled): W=%7.4f  X=%7.4f  Y=%7.4f  Z=%7.4f\r\n", w, x, y, z);
+    printf("Quat (scaled): W=%d.%04d  X=%d.%04d  Y=%d.%04d  Z=%d.%04d\r\n",
+        FLOAT_INT(w),  FLOAT_FRAC(w),
+        FLOAT_INT(x),  FLOAT_FRAC(x),
+        FLOAT_INT(y),  FLOAT_FRAC(y),
+        FLOAT_INT(z),  FLOAT_FRAC(z));
 
-    // Euler angles derived from quaternion
-    printf("Euler:  Roll=%7.2f  Pitch=%7.2f  Yaw=%7.2f (deg)\r\n", roll, pitch, yaw);
-    printf("Heading: %.2f deg\r\n", yaw);
+    // Instead of: printf("Euler: Roll=%7.2f  Pitch=%7.2f  Yaw=%7.2f (deg)\r\n", roll, pitch, yaw);
+    printf("Euler:  Roll=%d.%04d  Pitch=%d.%04d  Yaw=%d.%04d (deg)\r\n",
+        FLOAT_INT(roll),  FLOAT_FRAC(roll),
+        FLOAT_INT(pitch), FLOAT_FRAC(pitch),
+        FLOAT_INT(yaw),   FLOAT_FRAC(yaw));
+
+    // Instead of: printf("Heading: %.2f deg\r\n", yaw);
+    printf("Heading: %d.%04d deg\r\n", FLOAT_INT(yaw), FLOAT_FRAC(yaw));
 
     printf("==============================\r\n");
 }
 
-uint8_t checkCalibration() {
+uint8_t checkCalibration(int onlySysGyro) {
 
     HAL_StatusTypeDef info;
     uint8_t calBuffer = 0;
@@ -435,15 +465,16 @@ uint8_t checkCalibration() {
            sys_cal, acc_cal, mag_cal, gyro_cal);
 
     // All three must be fully calibrated
-    return (acc_cal == 3 && mag_cal == 3 && gyro_cal == 3);
+    if (onlySysGyro) {
+    return (sys_cal == 3 && gyro_cal == 3);
+    }
+    return (sys_cal == 3 && acc_cal == 3 && mag_cal == 3 && gyro_cal == 3);
 }
 
-// Save the 18 offset bytes out of the BNO055 into savedOffsets[]
 void saveCalibrationData()
 {
     HAL_StatusTypeDef info;
 
-    // Must be in CONFIGMODE to read offsets reliably
     setOperationMode(BNO055_OPR_MODE_CONFIG);
     HAL_Delay(20);
 
@@ -461,17 +492,82 @@ void saveCalibrationData()
         return;
     }
 
-    printf("Calibration offsets saved\r\n");
+    // Check if all offsets are zero
+    uint8_t allZero = 1;
+    for (int i = 0; i < CALIB_OFFSET_SIZE; i++) {
+        if (savedOffsets[i] != 0) { allZero = 0; break; }
+    }
+
+    printf("\r\n===== SAVED CALIBRATION OFFSETS =====\r\n");
+    printf("Accel offset:  X=%6d  Y=%6d  Z=%6d\r\n",
+        (int16_t)(savedOffsets[1]  << 8 | savedOffsets[0]),
+        (int16_t)(savedOffsets[3]  << 8 | savedOffsets[2]),
+        (int16_t)(savedOffsets[5]  << 8 | savedOffsets[4]));
+    printf("Mag   offset:  X=%6d  Y=%6d  Z=%6d\r\n",
+        (int16_t)(savedOffsets[7]  << 8 | savedOffsets[6]),
+        (int16_t)(savedOffsets[9]  << 8 | savedOffsets[8]),
+        (int16_t)(savedOffsets[11] << 8 | savedOffsets[10]));
+    printf("Gyro  offset:  X=%6d  Y=%6d  Z=%6d\r\n",
+        (int16_t)(savedOffsets[13] << 8 | savedOffsets[12]),
+        (int16_t)(savedOffsets[15] << 8 | savedOffsets[14]),
+        (int16_t)(savedOffsets[17] << 8 | savedOffsets[16]));
+    printf("Accel radius:  %6d\r\n",
+        (int16_t)(savedOffsets[19] << 8 | savedOffsets[18]));
+    printf("Mag   radius:  %6d\r\n",
+        (int16_t)(savedOffsets[21] << 8 | savedOffsets[20]));
+
+    // Raw hex dump
+    printf("Raw bytes: ");
+    for (int i = 0; i < CALIB_OFFSET_SIZE; i++) printf("%02X ", savedOffsets[i]);
+    printf("\r\n");
+
+    // C array initializer — copy this directly into your hardcoded init
+    printf("Copy this into your code:\r\n");
+    printf("static uint8_t savedOffsets[%d] = {\r\n    ", CALIB_OFFSET_SIZE);
+    for (int i = 0; i < CALIB_OFFSET_SIZE; i++) {
+        printf("0x%02X", savedOffsets[i]);
+        if (i < CALIB_OFFSET_SIZE - 1) printf(", ");
+        if ((i + 1) % 6 == 0) printf("\r\n    ");  // newline every 6 bytes for readability
+    }
+    printf("\r\n};\r\n");
+
+    printf("All zeros: %s\r\n", allZero ? "YES — IMU was NOT calibrated" : "NO — offsets look valid");
+    printf("=====================================\r\n");
 }
 
-// Write savedOffsets[] back into the BNO055 to skip motion calibration on next boot
 void loadCalibrationData()
 {
     HAL_StatusTypeDef info;
 
-    // Must be in CONFIGMODE to write offsets
     setOperationMode(BNO055_OPR_MODE_CONFIG);
     HAL_Delay(20);
+
+    // Check what we're about to write before sending it
+    uint8_t allZero = 1;
+    for (int i = 0; i < CALIB_OFFSET_SIZE; i++) {
+        if (savedOffsets[i] != 0) { allZero = 0; break; }
+    }
+
+    printf("\r\n===== LOADING CALIBRATION OFFSETS =====\r\n");
+    printf("Accel offset:  X=%6d  Y=%6d  Z=%6d\r\n",
+        (int16_t)(savedOffsets[1]  << 8 | savedOffsets[0]),
+        (int16_t)(savedOffsets[3]  << 8 | savedOffsets[2]),
+        (int16_t)(savedOffsets[5]  << 8 | savedOffsets[4]));
+    printf("Mag   offset:  X=%6d  Y=%6d  Z=%6d\r\n",
+        (int16_t)(savedOffsets[7]  << 8 | savedOffsets[6]),
+        (int16_t)(savedOffsets[9]  << 8 | savedOffsets[8]),
+        (int16_t)(savedOffsets[11] << 8 | savedOffsets[10]));
+    printf("Gyro  offset:  X=%6d  Y=%6d  Z=%6d\r\n",
+        (int16_t)(savedOffsets[13] << 8 | savedOffsets[12]),
+        (int16_t)(savedOffsets[15] << 8 | savedOffsets[14]),
+        (int16_t)(savedOffsets[17] << 8 | savedOffsets[16]));
+    printf("All zeros: %s\r\n", allZero ? "YES — writing zeroes, this won't help" : "NO — offsets look valid");
+
+    if (allZero) {
+        printf("WARNING: Skipping load — all offsets are zero, IMU needs calibration first\r\n");
+        printf("========================================\r\n");
+        return;
+    }
 
     if ((info = HAL_I2C_Mem_Write(
         &I2C_BNO055_Handle,
@@ -487,5 +583,6 @@ void loadCalibrationData()
         return;
     }
 
-    printf("Calibration offsets restored — skipping motion calibration\r\n");
+    printf("Offsets written successfully\r\n");
+    printf("========================================\r\n");
 }

@@ -221,8 +221,8 @@ void hardware_init(void)
   servoSail_hardwareInit();
   servoRudder_hardwareInit();
 
-  //sensorWind_hardwareInit();
-  //sensorMagnetometer_hardwareInit();
+  sensorWind_hardwareInit();
+  sensorMagnetometer_hardwareInit();
   sensorGPS_hardwareInit();
   /* USER CODE END SysInit */
 
@@ -241,7 +241,7 @@ void rtos_init()
   if (xTaskCreate(button_handler,             "buttonTask",             64,  NULL, osPriorityNormal,      &task_button)             != pdPASS) { Error_Handler(); }
   if (xTaskCreate(servoSail_handler,          "servoSailTask",          128, NULL, osPriorityNormal,      &task_servoSail)          != pdPASS) { Error_Handler(); }
   if (xTaskCreate(servoRudder_handler,        "servoRudderTask",        128, NULL, osPriorityNormal,      &task_servoRudder)        != pdPASS) { Error_Handler(); }
-  //if (xTaskCreate(sensorWind_handler,         "sensorWindTask",         512, NULL, osPriorityAboveNormal, &task_sensorWind)         != pdPASS) { Error_Handler(); }
-  //if (xTaskCreate(sensorMagnetometer_handler, "sensorMagnetometerTask", 128, NULL, osPriorityAboveNormal, &task_sensorMagnetometer) != pdPASS) { Error_Handler(); }
+  if (xTaskCreate(sensorWind_handler,         "sensorWindTask",         512, NULL, osPriorityAboveNormal, &task_sensorWind)         != pdPASS) { Error_Handler(); }
+  if (xTaskCreate(sensorMagnetometer_handler, "sensorMagnetometerTask", 128, NULL, osPriorityAboveNormal, &task_sensorMagnetometer) != pdPASS) { Error_Handler(); }
   if (xTaskCreate(sensorGPS_handler,          "sensorGPSTask",          512, NULL, osPriorityAboveNormal, &task_sensorGPS)          != pdPASS) { Error_Handler(); }
 }
