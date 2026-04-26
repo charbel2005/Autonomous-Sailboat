@@ -6,6 +6,7 @@
 #include "stm32h7xx_hal_conf.h"
 #include "stm32h7xx_hal_gpio.h"
 #include "stm32h7xx_hal_rcc.h"
+#include <stdio.h>
 #include <stdint.h>
 
 #include "button.h"
@@ -214,8 +215,9 @@ void hardware_init(void)
     Error_Handler();
   }
 
-  // Should already be in your STM32H7 HAL init but verify:
-  SCB->CPACR |= ((3UL << 10*2) | (3UL << 11*2));  // enable FPU
+  setvbuf(stdout, NULL, _IONBF, 0);
+  setvbuf(stderr, NULL, _IONBF, 0);
+
 
   /* USER CODE BEGIN SysInit */
   button_hardwareInit();
@@ -245,7 +247,7 @@ void rtos_init()
   if (xTaskCreate(servoRudder_handler,        "servoRudderTask",        128, NULL, osPriorityNormal,      &task_servoRudder)        != pdPASS) { Error_Handler(); }
   if (xTaskCreate(sensorWind_handler,         "sensorWindTask",         512, NULL, osPriorityNormal, &task_sensorWind)         != pdPASS) { Error_Handler(); }
   if (xTaskCreate(sensorMagnetometer_handler, "sensorMagnetometerTask", 256, NULL, osPriorityNormal, &task_sensorMagnetometer) != pdPASS) { Error_Handler(); }
-  if (xTaskCreate(sensorGPS_handler,          "sensorGPSTask",          512, NULL, osPriorityBelowNormal, &task_sensorGPS)     != pdPASS) { Error_Handler(); }
+  if (xTaskCreate(sensorGPS_handler,          "sensorGPSTask",          512, NULL, osPriorityNormal, &task_sensorGPS)     != pdPASS) { Error_Handler(); }
 
   button_activateControlMode(CONTROL_MODE_SERVO_SAIL);
 }

@@ -1,4 +1,5 @@
 // sensorWind.c
+#include "button.h"
 #include "sensorWind.h"
 #include "servoSail.h"   // include here, not in the header
 #include "main.h"
@@ -20,6 +21,10 @@ static void        flush_rx(void);
 static bool        read_bytes(uint8_t *buf, size_t len, uint32_t timeout_ms);
 static int         read_wind_dir_16(uint8_t addr); // static — nothing external calls this
 static const char* direction_name(int val);
+
+#define SENSOR_WIND_ACTIVE_PERIOD_MS 5
+#define SENSOR_WIND_IDLE_PERIOD_MS 20
+#define SENSOR_WIND_UART_TIMEOUT_MS 100
 
 // Hardware init                                                       
 void sensorWind_hardwareInit(void)
@@ -45,7 +50,7 @@ static void sensorWind_uart4Init(void)
     /* Set UART4 kernel clock explicitly */
     RCC_PeriphCLKInitTypeDef PeriphClkInit = {0};
     PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_UART4;
-    PeriphClkInit.Usart16ClockSelection  = RCC_UART4CLKSOURCE_D2PCLK1;
+    PeriphClkInit.Usart234578ClockSelection = RCC_UART4CLKSOURCE_D2PCLK1;
     if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
     {
         Error_Handler();
@@ -77,6 +82,12 @@ void sensorWind_handler(void *argument)
 {
     for (;;)
     {
+        if (button_getCurrentControlMode() != CONTROL_MODE_SENSOR_WIND)
+        {
+            vTaskDelay(pdMS_TO_TICKS(SENSOR_WIND_IDLE_PERIOD_MS));
+            continue;
+        }
+
         float angle = read_wind_angle_360(SENSOR_ADDRESS);
 
         if (angle < 0.0f)
@@ -90,7 +101,7 @@ void sensorWind_handler(void *argument)
             printf("Wind angle: %u.%u deg\r\n", degrees, tenths);
             servoSail_setAngle((225 - degrees));
         }
-        vTaskDelay(pdMS_TO_TICKS(1));
+        vTaskDelay(pdMS_TO_TICKS(SENSOR_WIND_ACTIVE_PERIOD_MS));
     }
 }
 
@@ -225,7 +236,7 @@ float read_wind_angle_360(uint8_t addr)
 
     flush_rx();
 
-    if (HAL_UART_Transmit(&UART4_Handler, cmd, 8, 1000) != HAL_OK)
+    if (HAL_UART_Transmit(&UART4_Handler, cmd, 8, SENSOR_WIND_UART_TIMEOUT_MS) != HAL_OK)
     {
         printf("TX error\r\n");
         return -1.0f;
@@ -233,7 +244,7 @@ float read_wind_angle_360(uint8_t addr)
 
     // Expect 7 bytes: [addr][0x03][0x02][dataH][dataL][crcL][crcH]
     uint8_t resp[7] = {0};
-    if (!read_bytes(resp, 7, 1000))
+    if (!read_bytes(resp, 7, SENSOR_WIND_UART_TIMEOUT_MS))
     {
         printf("RX timeout\r\n");
         return -1.0f;
@@ -266,11 +277,11 @@ int read_wind_dir_16(uint8_t addr)
 
     flush_rx();
 
-    if (HAL_UART_Transmit(&UART4_Handler, cmd, 8, 1000) != HAL_OK)
+    if (HAL_UART_Transmit(&UART4_Handler, cmd, 8, SENSOR_WIND_UART_TIMEOUT_MS) != HAL_OK)
         return -1;
 
     uint8_t resp[7] = {0};
-    if (!read_bytes(resp, 7, 1000))
+    if (!read_bytes(resp, 7, SENSOR_WIND_UART_TIMEOUT_MS))
         return -1;
 
     if (resp[0] != addr || resp[1] != 0x03 || resp[2] != 0x02)

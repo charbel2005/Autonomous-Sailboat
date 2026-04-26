@@ -7,7 +7,7 @@
 
 TaskHandle_t task_button;
 SemaphoreHandle_t semphr_button;
-static controlMode_t currentControlMode = CONTROL_MODE_SERVO_SAIL;
+static volatile controlMode_t currentControlMode = CONTROL_MODE_SERVO_SAIL;
 
 static const char *button_modeName(controlMode_t mode)
 {
@@ -23,44 +23,36 @@ static const char *button_modeName(controlMode_t mode)
   }
 }
 
+controlMode_t button_getCurrentControlMode(void)
+{
+  return currentControlMode;
+}
+
 void button_activateControlMode(controlMode_t mode)
 {
-  TaskHandle_t taskToResume = NULL;
-
   currentControlMode = mode;
-
-  vTaskSuspend(task_servoSail);
-  vTaskSuspend(task_servoRudder);
-  vTaskSuspend(task_sensorWind);
-  vTaskSuspend(task_sensorMagnetometer);
 
   switch (mode)
   {
     case CONTROL_MODE_SERVO_SAIL:
-      taskToResume = task_servoSail;
       break;
 
     case CONTROL_MODE_SERVO_RUDDER:
-      taskToResume = task_servoRudder;
       break;
 
     case CONTROL_MODE_SENSOR_WIND:
-      taskToResume = task_sensorWind;
       break;
 
     case CONTROL_MODE_MAG_YAW:
       sensorMagnetometer_setMode(SENSOR_MAG_MODE_YAW);
-      taskToResume = task_sensorMagnetometer;
       break;
 
     case CONTROL_MODE_MAG_PITCH:
       sensorMagnetometer_setMode(SENSOR_MAG_MODE_PITCH);
-      taskToResume = task_sensorMagnetometer;
       break;
 
     case CONTROL_MODE_MAG_ROLL:
       sensorMagnetometer_setMode(SENSOR_MAG_MODE_ROLL);
-      taskToResume = task_sensorMagnetometer;
       break;
 
     default:
@@ -68,11 +60,6 @@ void button_activateControlMode(controlMode_t mode)
   }
 
   printf("Active control mode: %s\r\n", button_modeName(mode));
-
-  if (taskToResume != NULL)
-  {
-    vTaskResume(taskToResume);
-  }
 }
 
 void button_activateNextControlMode(void)
@@ -112,10 +99,9 @@ void button_handler(void *argument)
   {
     if (xSemaphoreTake(semphr_button, portMAX_DELAY) == pdTRUE)
     {
-      printf("Button pressed!\r\n");
+      HAL_GPIO_WritePin(GPIOB, GPIO_PIN_14, GPIO_PIN_SET);
       button_activateNextControlMode();
-      HAL_GPIO_WritePin(GPIOB, GPIO_PIN_14, GPIO_PIN_SET); 
-      vTaskDelay(1000 * portTICK_PERIOD_MS);
+      vTaskDelay(pdMS_TO_TICKS(1000));
       HAL_GPIO_WritePin(GPIOB, GPIO_PIN_14, GPIO_PIN_RESET);
     }
   }

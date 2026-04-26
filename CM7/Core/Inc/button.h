@@ -1,3 +1,9 @@
+#ifndef BUTTON_H
+#define BUTTON_H
+
+#include "FreeRTOS.h"
+#include "task.h"
+#include "semphr.h"
 
 extern TaskHandle_t task_button;
 extern SemaphoreHandle_t semphr_button;
@@ -13,7 +19,10 @@ typedef enum
     CONTROL_MODE_COUNT
 } controlMode_t;
 
-void button_hardwareInit();
+void button_hardwareInit(void);
 void button_handler(void *argument);
 void button_activateControlMode(controlMode_t mode);
 void button_activateNextControlMode(void);
+controlMode_t button_getCurrentControlMode(void);
+
+#endif

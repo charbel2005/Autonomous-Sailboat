@@ -1,4 +1,5 @@
 #include "servoSail.h"
+#include "button.h"
 #include "sensorWind.h"  
 #include "main.h"
 #include "stm32h7xx_hal_tim.h"
@@ -10,6 +11,8 @@
 #define SERVO_MAX_ANGLE 135
 #define SERVO_MIN_PULSE 500
 #define SERVO_MAX_PULSE 2500
+#define SERVO_SAIL_ACTIVE_PERIOD_MS 5
+#define SERVO_SAIL_IDLE_PERIOD_MS 20
 
 TaskHandle_t task_servoSail;
 TIM_HandleTypeDef servo_tim1;
@@ -57,10 +60,16 @@ void servoSail_handler(void *argument)
 {
   for (;;)
   {
+    if (button_getCurrentControlMode() != CONTROL_MODE_SERVO_SAIL)
+    {
+      vTaskDelay(pdMS_TO_TICKS(SERVO_SAIL_IDLE_PERIOD_MS));
+      continue;
+    }
+
     uint16_t wind = (uint16_t)(read_wind_angle_360(SENSOR_ADDRESS));
 
     if (wind == 0xFFFF) {
-        vTaskDelay(pdMS_TO_TICKS(100));
+        vTaskDelay(pdMS_TO_TICKS(SERVO_SAIL_ACTIVE_PERIOD_MS));
         continue;
     }
 
@@ -70,7 +79,7 @@ void servoSail_handler(void *argument)
     int16_t sail_angle = (int16_t)(225 - (int16_t)wind + 45);
 
     servoSail_setAngle(sail_angle);
-    vTaskDelay(pdMS_TO_TICKS(1));  
+    vTaskDelay(pdMS_TO_TICKS(SERVO_SAIL_ACTIVE_PERIOD_MS));
   }
 }
 void servoSail_setAngle(int16_t angle)
@@ -79,5 +88,4 @@ void servoSail_setAngle(int16_t angle)
     if (angle > SERVO_MAX_ANGLE) angle = SERVO_MAX_ANGLE;
     uint16_t pulse_length = SERVO_MIN_PULSE + ((SERVO_MAX_PULSE - SERVO_MIN_PULSE) * (angle - SERVO_MIN_ANGLE)) / (SERVO_MAX_ANGLE - SERVO_MIN_ANGLE);
     __HAL_TIM_SET_COMPARE(&servo_tim1, TIM_CHANNEL_1, pulse_length);
-    printf("Setting Servo Angle To: %d\r\n", angle);
 }

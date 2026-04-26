@@ -1,4 +1,6 @@
 #include "main.h"
+#include "button.h"
+#include "servoSail.h"
 #include "stm32h7xx_hal_i2c.h"
 #include <stdbool.h>
 #include <stdint.h>
@@ -103,8 +105,11 @@ I2C_HandleTypeDef I2C_BNO055_Handle;
 uint8_t currentMode;
 uint8_t targetMode;
 int16_t servoAngle;
-static sensorMagnetometerMode_t magnetometerTaskMode = SENSOR_MAG_MODE_YAW;
+static volatile sensorMagnetometerMode_t magnetometerTaskMode = SENSOR_MAG_MODE_YAW;
 static uint8_t isCalibrated = FALSE;
+
+#define SENSOR_MAG_ACTIVE_PERIOD_MS 1
+#define SENSOR_MAG_IDLE_PERIOD_MS 20
 
 static uint8_t savedOffsets[CALIB_OFFSET_SIZE] = {
     0xDD, 0xFF, 0xCC, 0xFF, 0xDD, 0xFF,   // accel X, Y, Z
@@ -317,6 +322,15 @@ void sensorMagnetometer_handler(void *argument)
 {
     for(;;)
     {
+        controlMode_t activeMode = button_getCurrentControlMode();
+        if (activeMode != CONTROL_MODE_MAG_YAW &&
+            activeMode != CONTROL_MODE_MAG_PITCH &&
+            activeMode != CONTROL_MODE_MAG_ROLL)
+        {
+            vTaskDelay(pdMS_TO_TICKS(SENSOR_MAG_IDLE_PERIOD_MS));
+            continue;
+        }
+
         uint8_t actualMode = 0;
         HAL_I2C_Mem_Read(&I2C_BNO055_Handle, BNO055_ADDR << 1,
                         BNO055_OPR_MODE, I2C_MEMADD_SIZE_8BIT,
@@ -344,6 +358,7 @@ void sensorMagnetometer_handler(void *argument)
                 break;
         }
         servoSail_setAngle(servoAngle);
+        vTaskDelay(pdMS_TO_TICKS(SENSOR_MAG_ACTIVE_PERIOD_MS));
     }
 }
 
