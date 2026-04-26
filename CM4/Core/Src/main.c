@@ -76,7 +76,8 @@ typedef struct __attribute__((packed)) {
 /* USER CODE BEGIN PV */
 SPI_HandleTypeDef hspi1;
 TIM_HandleTypeDef htim6;
-volatile uint8_t  tx_flag = 0;   /* set by TIM6 ISR every 1 s */
+volatile uint8_t  tx_flag  = 0;  /* set by TIM6 ISR every 1 s */
+volatile uint8_t  dio0_flag = 0; /* set by EXTI ISR when DIO0 (PG9) fires */
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
