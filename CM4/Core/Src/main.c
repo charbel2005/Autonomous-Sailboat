@@ -65,6 +65,9 @@ typedef struct __attribute__((packed)) {
 #endif
 #endif /* DUAL_CORE_BOOT_SYNC_SEQUENCE */
 
+#define ADDR_SAMD21  0xAA
+#define ADDR_STM32   0xBB
+
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -171,7 +174,9 @@ int main(void)
   }
   LoRa_StartRX();
 
-  static int8_t rudder_angle = 0;
+  static int8_t  rudder_angle = 0;
+  static uint8_t led_status   = 0;  /* bitmask: bit0=green, bit1=red, bit2=yellow */
+  static uint8_t tx_seq       = 0;
 
   TelemetryPacket_t pkt = {
       .lat        = 40.7128f,
@@ -192,9 +197,16 @@ int main(void)
 
       if (tx_flag) {
           tx_flag = 0;
-          LoRa_Send((uint8_t *)"JARED SEND SOMETHING", sizeof("JARED SEND SOMETHING"));
-          Debug_LED_Toggle('g');
-          printf("[TX] sent\r\n");
+          char payload[32];
+          uint8_t plen = snprintf(payload, sizeof(payload), "STATUS,%d,%d", rudder_angle, led_status);
+          uint8_t pkt[36];
+          pkt[0] = ADDR_SAMD21;   /* dest */
+          pkt[1] = ADDR_STM32;    /* src */
+          pkt[2] = tx_seq++;
+          pkt[3] = plen;
+          memcpy(pkt + 4, payload, plen);
+          LoRa_Send(pkt, 4 + plen);
+          printf("[TX] %s\r\n", payload);
       }
 
       if (dio0_flag) {
@@ -206,6 +218,12 @@ int main(void)
           if (len > 0) {
               printf("[RX] cmd len=%d byte0=0x%02X\r\n", len, cmd[0]);
 
+              /* LED toggles */
+              if      (cmd[0] == 'g') { led_status ^= 0x01; Debug_LED_Toggle('g'); }
+              else if (cmd[0] == 'r') { led_status ^= 0x02; Debug_LED_Toggle('r'); }
+              else if (cmd[0] == 'y') { led_status ^= 0x04; Debug_LED_Toggle('y'); }
+
+              /* Rudder steps */
               int8_t delta = 0;
               if      (cmd[0] == 'q') delta = +20;
               else if (cmd[0] == 'e') delta = -20;
