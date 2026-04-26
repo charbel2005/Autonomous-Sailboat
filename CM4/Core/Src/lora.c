@@ -467,7 +467,7 @@ void LoRa_StartRX(void)
 */
 void LoRa_ProcessDIO0(void)
 {                                   
-    uint8_t irq = SPI_rx_byte(REG_IRQ_FLAGS);
+    uint8_t irq = SPI_rx_byte(REG_IRQ_FLAGS);// read flags to find out what happened
     SPI_tx_byte(REG_IRQ_FLAGS, 0xFF);        /* clear flags before touching FIFO */
 
     if (s_state == LORA_STATE_TX) {
@@ -477,7 +477,7 @@ void LoRa_ProcessDIO0(void)
 
     if (s_state == LORA_STATE_RX) {
         if (irq & IRQ_PAYLOAD_CRC_ERROR) {
-            LoRa_StartRX();
+            LoRa_StartRX();     // crc error
             return;
         }
         if (irq & IRQ_RX_DONE) {
