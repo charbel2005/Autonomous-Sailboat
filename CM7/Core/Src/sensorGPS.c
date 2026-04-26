@@ -235,10 +235,8 @@ void sensorGPS_handler(void *argument) {
 
     if (lat_diff < 0.0001 && lon_diff < 0.0001)
     {
-        printf("MISSION SUCCESSFUL\r\n");
+        printf("MISSION SUCCESSFUL!\r\n");
         vTaskDelay(pdMS_TO_TICKS(10000));
-    }
-
-    vTaskDelay(pdMS_TO_TICKS(10));
-}
+    } 
+  }
 }
