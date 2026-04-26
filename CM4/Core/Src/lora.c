@@ -450,17 +450,17 @@ void LoRa_StartRX(void)
 
     SPI_tx_byte(REG_FIFO_ADDR_PTR, 0x00);   /* reset FIFO pointer to base */
     SPI_tx_byte(REG_DIO_MAPPING_1, 0x00);   /* DIO0 = RxDone (0x40 would be TxDone) */
-    SPI_tx_byte(REG_IRQ_FLAGS, 0xFF);        /* clear any leftover flags or DIO0 won't re-fire */
+    SPI_tx_byte(REG_IRQ_FLAGS, 0xFF);        /* clear any leftover flags */
 
     s_state = LORA_STATE_RX;
-    SPI_tx_byte(REG_OP_MODE, 0x85);         /* continuous RX — radio listens indefinitely */
+    SPI_tx_byte(REG_OP_MODE, 0x85);         /* continuous RX radio listens indefinitely */
 }
 
 /* Called from the main loop when dio0_flag is set (DIO0 EXTI fired on PG9).
    Checks s_state to know whether this was a TxDone or RxDone event.
 
    TxDone: clears flags, goes back to RX.
-   RxDone: reads IRQ flags, checks CRC, seeks FIFO to where this packet landed
+   RxDone: reads IRQ flags, checks CRC, seeks FIFO to where      packet landed
            (the chip writes each packet at a variable offset — RegFifoRxCurrentAddr
            tells us where), burst-reads the bytes into s_rx_buf, sets s_rx_ready,
            then goes back to RX so we're listening again immediately.

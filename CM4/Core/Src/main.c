@@ -165,6 +165,7 @@ int main(void)
       printf("LoRa init FAILED\r\n");
       Debug_LED_Toggle('o');
   }
+  LoRa_StartRX();
 
   TelemetryPacket_t pkt = {
       .lat        = 40.7128f,
@@ -188,6 +189,18 @@ int main(void)
           LoRa_Send((uint8_t *)"JARED SEND SOMETHING", sizeof("JARED SEND SOMETHING"));
           Debug_LED_Toggle('g');
           printf("[TX] sent\r\n");
+      }
+
+      if (dio0_flag) {
+          dio0_flag = 0;
+          LoRa_ProcessDIO0();
+
+          uint8_t cmd[64];
+          uint8_t len = LoRa_GetCmd(cmd);
+          if (len > 0) {
+              printf("[RX] cmd len=%d byte0=0x%02X\r\n", len, cmd[0]);
+              /* TODO: dispatch cmd[0] to rudder/sail servo */
+          }
       }
   }
 
