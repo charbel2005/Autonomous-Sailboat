@@ -1,13 +1,13 @@
 # AUTONOMOUS SAILBOAT
 
-### Sensor Team
+### Sensor Team (refs/heads/main-sensor)
 
 * Corbin Barney (u1066089)
 * Charbel Salloum (u1446840)
 * Derek Tinoco (u1382366)
 * Connor Stevens (u1463295)
 
-### Antenna Team
+### Antenna Team (refs/heads/main-lora)
 
 * Harrison LeTourneau (u1460207)
 * Adam Welsh (u1456456)
