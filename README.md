@@ -1,6 +1,12 @@
 # AUTONOMOUS SAILBOAT
 
-### Sensor Team
+For our capstone we are building a semi-autonomous sail boat capable of navigating between a series of way points set by an operator. This will include sensor integration, path planning, wirless communication, and mechanical operation of the boat. For our Embedded class we split into 2 teams in order to handle the sensor integration and wireless communication.
+
+This project runs on the STM32H7 Nucleo-144. This board was chosen for its dual-core, floating point unit, and high clock rate.
+
+### Sensor Team (refs/heads/main-sensor)
+
+Sensor team was in charge of sensor integration. We combined a servo, IMU, magnetometer, GPS, and wind vain. In the final boat, servos will be used as the control mechanisms, the magnetometer, IMU, and GPS provide position and heading for waypoint navigation, the wind vane is used to correctly position the sail for optimal lift when on the water.
 
 * Corbin Barney (u1066089)
 * Charbel Salloum (u1446840)
