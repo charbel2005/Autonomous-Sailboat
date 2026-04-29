@@ -19,12 +19,15 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "lora.h"
+#include "servoRudder.h"
 #include <stdint.h>
+#include <string.h>
 
 #include "stm32h7xx_hal_conf.h"
 #include "stm32h7xx_hal_gpio.h"
 #include "stm32h7xx_hal_rcc.h"
 #include "stm32h7xx_hal_spi.h"
+#include "stm32h7xx_hal_tim.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -62,6 +65,9 @@ typedef struct __attribute__((packed)) {
 #endif
 #endif /* DUAL_CORE_BOOT_SYNC_SEQUENCE */
 
+#define ADDR_SAMD21  0xAA
+#define ADDR_STM32   0xBB
+
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -73,11 +79,15 @@ typedef struct __attribute__((packed)) {
 
 /* USER CODE BEGIN PV */
 SPI_HandleTypeDef hspi1;
+TIM_HandleTypeDef htim6;
+volatile uint8_t  tx_flag  = 0;  /* set by TIM6 ISR every 1 s */
+volatile uint8_t  dio0_flag = 0; /* set by EXTI ISR when DIO0 (PG9) fires */
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN PFP */
 static void MX_SPI1_Init(void);
+static void MX_TIM6_Init(void);
 static void SystemClock_Config(void);
 /* USER CODE END PFP */
 
@@ -95,7 +105,7 @@ static void SystemClock_Config(void);
   * @retval int
   */
 int main(void)
-{
+  {
 
   /* USER CODE BEGIN 1 */
 
@@ -143,9 +153,16 @@ int main(void)
   };
   BSP_COM_Init(COM1, &com);
   setvbuf(stdout, NULL, _IONBF, 0);
+  
+  
+  
   MX_SPI1_Init();
+  MX_TIM6_Init();
 
   Debug_LED_Init();
+
+  servoRudder_init();
+
 
 
   // Debug_LED_Toggle('y');  // toggle yellow LED to indicate SPI initialized
@@ -153,14 +170,14 @@ int main(void)
   if (LoRa_init() != 0)
   {
       printf("LoRa init FAILED\r\n");
-      Debug_LED_Toggle('r');
-      Error_Handler();
-  }
-  else
-  {
-      printf("LoRa init OK\r\n");
       Debug_LED_Toggle('o');
   }
+  LoRa_StartRX();
+
+  static int8_t  rudder_angle = 0;
+  /* LoRa_init() toggles yellow LED once for version check, so yellow starts ON */
+  static uint8_t led_status   = 0x04;  /* bitmask: bit0=green, bit1=red, bit2=yellow */
+  static uint8_t tx_seq       = 0;
 
   TelemetryPacket_t pkt = {
       .lat        = 40.7128f,
@@ -169,7 +186,7 @@ int main(void)
       .battery    = 95,
   };
 
-  char message[] = "Hello from harrisons laptop!";
+  // char message[] = "Hello from harrisons laptop!\n";
 
   /* USER CODE END 2 */
 
@@ -177,16 +194,56 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-    /* USER CODE END WHILE */
+      __WFI();   /* sleep until any interrupt fires */
 
-    printf("Sending packet...\r\n");
-    LoRa_Send((uint8_t *)&message, sizeof(message));
-    printf("Packet sent.\r\n");
-    Debug_LED_Toggle('y');
-    HAL_Delay(1000);
-    
-    /* USER CODE BEGIN 3 */
+      if (tx_flag) {
+          tx_flag = 0;
+          char payload[32];
+          uint8_t plen = snprintf(payload, sizeof(payload), "STATUS,%d,%d", rudder_angle, led_status);
+          uint8_t pkt[36];
+          pkt[0] = ADDR_SAMD21;   /* dest */
+          pkt[1] = ADDR_STM32;    /* src */
+          pkt[2] = tx_seq++;
+          pkt[3] = plen;
+          memcpy(pkt + 4, payload, plen);
+          LoRa_Send(pkt, 4 + plen);
+          printf("[TX] %s\r\n", payload);
+      }
+
+      if (dio0_flag) {
+          dio0_flag = 0;
+          LoRa_ProcessDIO0();
+
+          uint8_t cmd[64];
+          uint8_t len = LoRa_GetCmd(cmd);
+          if (len > 0) {
+              printf("[RX] cmd len=%d byte0=0x%02X\r\n", len, cmd[0]);
+
+              /* LED toggles */
+              if      (cmd[0] == 'g') { led_status ^= 0x01; Debug_LED_Toggle('g'); }
+              else if (cmd[0] == 'r') { led_status ^= 0x02; Debug_LED_Toggle('r'); }
+              else if (cmd[0] == 'y') { led_status ^= 0x04; Debug_LED_Toggle('y'); }
+
+              /* Rudder steps */
+              int8_t delta = 0;
+              if      (cmd[0] == 'q') delta = +20;
+              else if (cmd[0] == 'e') delta = -20;
+              else if (cmd[0] == 'a') delta = +10;
+              else if (cmd[0] == 'd') delta = -10;
+              else if (cmd[0] == 'z') delta = +5;
+              else if (cmd[0] == 'c') delta = -5;
+
+              if (delta != 0) {
+                rudder_angle += delta;
+                if (rudder_angle >  45) rudder_angle =  45;
+                if (rudder_angle < -45) rudder_angle = -45;
+                servoRudder_setAngle(rudder_angle);
+              }
+          }
+      }
   }
+
+
   /* USER CODE END 3 */
 }
 
@@ -214,6 +271,24 @@ static void MX_SPI1_Init(void)
     {
         Error_Handler();
     }
+}
+
+static void MX_TIM6_Init(void)
+{
+    __HAL_RCC_TIM6_CLK_ENABLE();
+
+    htim6.Instance               = TIM6;
+    htim6.Init.Prescaler         = 63999;  /* 64 MHz / 64000 = 1 kHz  */
+    htim6.Init.CounterMode       = TIM_COUNTERMODE_UP;
+    htim6.Init.Period            = 999;    /* 1 kHz  / 1000  = 1 Hz   */
+    htim6.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
+
+    if (HAL_TIM_Base_Init(&htim6) != HAL_OK) { Error_Handler(); }
+
+    HAL_NVIC_SetPriority(TIM6_DAC_IRQn, 5, 0);
+    HAL_NVIC_EnableIRQ(TIM6_DAC_IRQn);
+
+    HAL_TIM_Base_Start_IT(&htim6);  /* start timer, enable update interrupt */
 }
 
 static void SystemClock_Config(void)
