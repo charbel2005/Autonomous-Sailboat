@@ -29,3 +29,15 @@ The flash script can be used to build and flash the STM32 for a specific process
 
 * The -b flag will build the binary for the declared processors and then flash them. If -b is omitted then the script will just flash, no build.
 * the -cm4 and -cm7 flags are used to flash to those specific processors. If both are declared the script will always flash the cm4 and then the cm7.
+
+## How To Operate
+
+There are two steps to getting our project working. 
+
+### Remote Side
+
+Flash the remote (boat-side) MCU (STM). This is done just by connecting the MCU to a computer and building and flashing with the above `build.sh` and `flash.sh` scripts. Once the board is flashed, it can be connected to a serial terminal, so that the incoming and outgoing messages are displayed via UART. 
+
+### Ground Station
+
+Flash the ground station MCU (SparkFun SAMD21). To do this, switch branches to the SAMD21_LoRa branch. Next, you can follow the instructions in the SAMD21_LoRa README to open a simple serial monitor and send instructions via typing `q` (+20 deg), `e` (-20 deg), `a` (+10 deg), `d` (-10 deg), `z` (+5 deg), `c` (-5 deg), `g` (toggle green led), `y` (toggle yellow led), `r` (toggle red led). Or, you can run the python script `python3 dashboard.py [port] [baud rate]` which opens up a simple localhost on a browser and allows for GUI monitoring of the boat-side state. 
