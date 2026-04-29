@@ -167,7 +167,7 @@ pip install flask pyserial
  
 ## Scripts
  
-### `./build.sh [-cm4 | -cm7 | -startup]`
+ `./build.sh [-cm4 | -cm7 | -startup]`
  
 Builds the STM32 firmware.
  
@@ -177,16 +177,15 @@ Builds the STM32 firmware.
 - Both flags can be combined: `./build.sh -cm4 -cm7`
 > **Note:** The `-startup` flag attempts to install dependencies via `apt-get` which does not exist on macOS. Use the manual `brew` commands above instead, then run `./build.sh -cm4 -cm7` to build.
  
-### `./flash.sh [-cm4 | -cm7 | -b]`
+ `./flash.sh [-cm4 | -cm7 | -b]`
  
 Flashes the STM32 over USB via OpenOCD.
  
-- `-cm4` — Flashes the CM4 processor (Bank 2, `0x08100000`).
-- `-cm7` — Flashes the CM7 processor (Bank 1, `0x08000000`).
+- `-cm4` — Flashes the CM4 processor.
+- `-cm7` — Flashes the CM7 processor.
 - `-b` — Builds before flashing. Omit to flash an already-built binary.
 - Both flags can be combined. **CM7 is always flashed before CM4.**
-> **Note:** Always flash CM7 before CM4. The dual-core boot sequence requires the CM7 to release a hardware semaphore before the CM4 will exit stop mode and begin executing. Flashing CM4 alone will result in the CM4 hanging at startup.
- 
+
 ---
  
 ## How To Operate
