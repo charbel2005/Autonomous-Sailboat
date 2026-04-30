@@ -1,0 +1,4 @@
+Wind vane - https://www.dfrobot.com/product-2340.html?srsltid=AfmBOoq4gZLWeGbJJ6jZAf3j3B8hGzqYiaY3TNXIw4tRS9fDVL5PowSr
+RS485 to UART adapter - https://wiki.dfrobot.com/dfr0845/
+
+NOTE: With the unfortunate poor design of the adapter, TX must connect to TX on the MCU, and RX must conenct to RX.
