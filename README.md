@@ -8,6 +8,13 @@ This project runs on the STM32H7 Nucleo-144. This board was chosen for its dual-
 
 Sensor team was in charge of sensor integration. We combined a servo, IMU, magnetometer, GPS, and wind vain. In the final boat, servos will be used as the control mechanisms, the magnetometer, IMU, and GPS provide position and heading for waypoint navigation, the wind vane is used to correctly position the sail for optimal lift when on the water.
 
+- GPS (GT-u7 gps module): The GPS module is used to get Latitude and Longitude reading printouts to know current position of sailboat. Furthermore, it contains logic to set up destination lat and long, and printing out a message when destination is reached.
+- Wind Vane (DFRobot Windvane): The wind vane uses RS485 protocol, and therefore connects to a RS485 to UART adapter in order to read wind direction. The wind direction is used to actuate the sail servo and maintain a 45 degree angle relative to the wind (to maximize lift). 
+- IMU and Magnetometer (Adafruit 9-DOF Absolute Orientation- BNO055): This breakout board contains a Gyroscope, Accelerometer, and Magnetometer. It provides individual readings from each sensor unit, and a fused reading of all to visualize and quantize the orientation of the board. This is used on the sailboat to visualize the model, and to control emergency shut off in the case of the boat tipping over.
+- Power Distribution: We are using a 4S battery conencted up to a Power Distribution board that provides a stable 5V and 12 V to the electronics.
+
+Useful wiring diagrams and datasheets are in the docs file.
+
 * Corbin Barney (u1066089)
 * Charbel Salloum (u1446840)
 * Derek Tinoco (u1382366)
