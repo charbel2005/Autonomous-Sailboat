@@ -6,6 +6,8 @@ This project runs on the STM32H7 Nucleo-144. This board was chosen for its dual-
 
 ### Sensor Team (refs/heads/main-sensor)
 
+NOTE: buttonTaskSwitcher is the branch used for the ECE 5780 Demo.
+
 Sensor team was in charge of sensor integration. We combined a servo, IMU, magnetometer, GPS, and wind vain. In the final boat, servos will be used as the control mechanisms, the magnetometer, IMU, and GPS provide position and heading for waypoint navigation, the wind vane is used to correctly position the sail for optimal lift when on the water.
 
 - GPS (GT-u7 gps module): The GPS module is used to get Latitude and Longitude reading printouts to know current position of sailboat. Furthermore, it contains logic to set up destination lat and long, and printing out a message when destination is reached.
