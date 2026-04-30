@@ -257,3 +257,8 @@ Then open `http://localhost:8080` in a browser. The dashboard displays:
 - Packet sequence number and last update timestamp
 - Clickable command buttons (keyboard shortcuts also work)
 - Raw serial output from the SAMD21
+
+
+## Acknowledgments
+
+We used Claude (Anthropic) in some situations to help us understand LoRa communication methodology as well as to debug and work through certain implementation problems.
