@@ -1,7 +1,7 @@
 % ---------------------------------------------------
 
 \subsection{Positioning}
-% Finish by October 2026
+% August 2026 - October 2026
 
 The positioning subsystem fuses GPS and IMU data to determine the vessel's position and heading at all times. GPS provides absolute position at low update rates, while the IMU and magnetometer provide high-rate heading and attitude information between GPS fixes.
 
@@ -16,7 +16,7 @@ The positioning subsystem fuses GPS and IMU data to determine the vessel's posit
 % ---------------------------------------------------
 
 \subsection{Self Trimming Wingsail}
-% Finish by October 2026
+% August 2026 - October 2026
 
 The software component of the self-trimming wingsail manages the servo that controls the tail angle. The tail angle is adjusted based on the apparent wind direction to maintain an optimal angle of attack for the main sail, maximizing propulsion efficiency while minimizing power consumption. The control loop runs continuously using a PID, adjusting the tail angle in response to changes in wind direction and vessel heading.
 
@@ -31,7 +31,7 @@ The software component of the self-trimming wingsail manages the servo that cont
 % ---------------------------------------------------
 
 \subsection{Path Planning}
-% Finish by November 2026
+% September 2026 - November 2026
 
 The path planning subsystem computes a route between the current position and the next waypoint, accounting for wind direction and the no-sail zone ($\pm45^{\circ}$ into the wind).
 
@@ -46,7 +46,7 @@ The path planning subsystem computes a route between the current position and th
 % ---------------------------------------------------
 
 \subsection{Emergency Recovery}
-% Finish by November 2026
+% October 2026 - November 2026
 
 The emergency recovery subsystem provides fail-safe behavior when anomalous conditions are detected, including communication loss, low battery, sensor failure, or geofence violation.
 
@@ -61,7 +61,7 @@ The emergency recovery subsystem provides fail-safe behavior when anomalous cond
 % ---------------------------------------------------
 
 \subsection{Ground Station Interface}
-% Finish by October 2026
+% August 2026 - October 2026
 
 The ground station interface allows remote monitoring and control of the vessel via LoRa communication. The operator can view real-time telemetry, update waypoints, or trigger manual control overrides.
 
@@ -76,7 +76,7 @@ The ground station interface allows remote monitoring and control of the vessel 
 % ---------------------------------------------------
 
 \subsection{Autonomous Sailboat}
-% Finish by December 2026
+% October 2026 - December 2026
 
 The top-level autonomous control integrates all software subsystems: positioning, self-trimming wingsail control, path planning, and emergency recovery into a cohesive mission execution framework.
 
