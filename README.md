@@ -1,6 +1,6 @@
 # AUTONOMOUS SAILBOAT
 
-For our capstone we are building a semi-autonomous sail boat capable of navigating between a series of way points set by an operator. This will include sensor integration, path planning, wireless communication, and mechanical operation of the boat. For our Embedded class we split into 2 teams in order to handle the sensor integration and wireless communication.
+For our capstone we are building a semi-autonomous sailboat capable of navigating between a series of waypoints set by an operator. This will include sensor integration, path planning, wireless communication, and mechanical operation of the boat. For our Embedded class we split into 2 teams in order to handle the sensor integration and wireless communication.
 
 This project runs on the STM32H7 Nucleo-144. This board was chosen for its dual-core, floating point unit, and high clock rate.
 
@@ -11,7 +11,7 @@ Sensor team was in charge of sensor integration. We combined a servo, IMU, magne
 - GPS (GT-u7 gps module): The GPS module is used to get Latitude and Longitude reading printouts to know current position of sailboat. Furthermore, it contains logic to set up destination lat and long, and printing out a message when destination is reached.
 - Wind Vane (DFRobot Windvane): The wind vane uses RS485 protocol, and therefore connects to a RS485 to UART adapter in order to read wind direction. The wind direction is used to actuate the sail servo and maintain a 45 degree angle relative to the wind (to maximize lift). 
 - IMU and Magnetometer (Adafruit 9-DOF Absolute Orientation- BNO055): This breakout board contains a Gyroscope, Accelerometer, and Magnetometer. It provides individual readings from each sensor unit, and a fused reading of all to visualize and quantize the orientation of the board. This is used on the sailboat to visualize the model, and to control emergency shut off in the case of the boat tipping over.
-- Power Distribution: We are using a 4S battery conencted up to a Power Distribution board that provides a stable 5V and 12 V to the electronics.
+- Power Distribution: We are using a 4S battery connected up to a Power Distribution board that provides a stable 5V and 12 V to the electronics.
 
 Useful wiring diagrams and datasheets are in the docs file.
 
@@ -45,7 +45,7 @@ The flash script can be used to build and flash the STM32 for a specific process
 
 ## DEBUG
 
-This STM32 is equiped with a virtual serial port that lets you connect to its serial debug port directly over the USB you use to flash, no extra nonsense needed. To run it you need to use the following commands.
+This STM32 is equipped with a virtual serial port that lets you connect to its serial debug port directly over the USB you use to flash, no extra nonsense needed. To run it you need to use the following commands.
 
 linux
 ```bash
@@ -55,4 +55,4 @@ screen $(ls /dev/ttyACM* | head -1) 115200 # To start the screen
 
 ## CALIBRATION
 
-On initial startup the IMU will need to calibrate. The status of the calibration can be seen on the virtual serial port where the magnetometer, gyroscope, acceleramator, and gthe system will have a value from 0-3/3. only when all three sensors are calibrated will the system reach 3/3. To calibrate the gyroscope hold the IMU still for a couple seconds, for the magnetometer move it in a figure 8 to calibrate, and finally for the acceleramator hold it in 6 stable positions covering all three axis. 
+On initial startup the IMU will need to calibrate. The status of the calibration can be seen on the virtual serial port where the magnetometer, gyroscope, accelerometer, and system will have a value from 0-3/3. Only when all three sensors are calibrated will the system reach 3/3. To calibrate the gyroscope hold the IMU still for a couple seconds, for the magnetometer move it in a figure 8 to calibrate, and finally for the accelerometer hold it in 6 stable positions covering all three axis. 
