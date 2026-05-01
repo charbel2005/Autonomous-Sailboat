@@ -33,7 +33,7 @@ The software component of the self-trimming wingsail manages the servo that cont
 \subsection{Path Planning}
 % Finish by November 2026
 
-The path planning subsystem computes a route between the current position and the next waypoint, accounting for wind direction and the no-sail zone ($\pm45\circ$ into the wind).
+The path planning subsystem computes a route between the current position and the next waypoint, accounting for wind direction and the no-sail zone ($\pm45^{\circ}$ into the wind).
 
 \textbf{Implementation:} When the direct path to a waypoint falls within the no-sail zone, the planner generates a tacking sequence---a series of close-hauled legs alternating between port and starboard tack. A state machine manages transitions between sailing states: close-hauled, beam reach, broad reach, running, tacking, and jibing. Waypoint arrival is determined by a configurable radius threshold around the target GPS coordinate.
 
