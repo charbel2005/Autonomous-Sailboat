@@ -24,6 +24,8 @@ Useful wiring diagrams and datasheets are in the docs file.
 
 * Harrison LeTourneau (u1460207)
 * Adam Welsh (u1456456)
+* Jared Pratt
+* 
 
 ## SCRIPTS
 
