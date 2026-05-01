@@ -52,3 +52,7 @@ linux
 screen $(ls /dev/ttyACM* | head -1) 115200 # To start the screen
 # To stop the screen click "k".
 ```
+
+## CALIBRATION
+
+On initial startup the IMU will need to calibrate. The status of the calibration can be seen on the virtual serial port where the magnetometer, gyroscope, acceleramator, and gthe system will have a value from 0-3/3. only when all three sensors are calibrated will the system reach 3/3. To calibrate the gyroscope hold the IMU still for a couple seconds, for the magnetometer move it in a figure 8 to calibrate, and finally for the acceleramator hold it in 6 stable positions covering all three axis. 
